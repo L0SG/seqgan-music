@@ -98,7 +98,7 @@ class ROLLOUT(object):
             loop_vars=(i, x_t, h_tm1, given_num, self.gen_x))
 
         # unstack the gen_x, with shape [seq_length, batch_size]
-        self.gen_x = tf.transpose(self.gen_x.unstack(), perm=[1, 0])
+        self.gen_x = tf.transpose(self.gen_x.stack(), perm=[1, 0])
 
 
     def get_reward(self, sess, input_x, rollout_num, discriminator):
