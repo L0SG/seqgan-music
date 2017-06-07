@@ -7,6 +7,8 @@ from discriminator import Discriminator
 from rollout import ROLLOUT
 from target_lstm import TARGET_LSTM
 import cPickle
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 #########################################################################################
 #  Generator  Hyper-parameters
