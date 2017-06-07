@@ -1,5 +1,5 @@
 import numpy as np
-
+import cPickle
 
 class Gen_Data_loader():
     def __init__(self, batch_size):
@@ -8,10 +8,10 @@ class Gen_Data_loader():
 
     def create_batches(self, data_file):
         self.token_stream = []
-        with open(data_file, 'r') as f:
-            for line in f:
-                line = line.strip()
-                line = line.split()
+        with open(data_file, 'rb') as f:
+            # load pickle data
+            data = cPickle.load(f)
+            for line in data:
                 parse_line = [int(x) for x in line]
                 if len(parse_line) == 20:
                     self.token_stream.append(parse_line)
