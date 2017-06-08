@@ -174,7 +174,7 @@ def main():
                         discriminator.dropout_keep_prob: dis_dropout_keep_prob
                     }
                     _ = sess.run(discriminator.train_op, feed)
-                    print('D loss:' + str(discriminator.loss))
+                    print('D loss:' + str(discriminator.loss.eval(session=sess)))
 
     log.close()
 
