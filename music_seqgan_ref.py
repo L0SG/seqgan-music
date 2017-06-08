@@ -7,6 +7,7 @@ from discriminator import Discriminator
 from rollout import ROLLOUT
 import cPickle
 import os
+from nltk.translate.bleu_score import corpus_bleu
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 #########################################################################################
@@ -84,6 +85,32 @@ def calculate_train_loss_epoch(sess, trainable_model, data_loader):
     return np.mean(supervised_g_losses)
 
 
+def calculate_bleu(sess, trainable_model, data_loader):
+    data_loader.reset_pointer()
+    bleu_avg = 0
+
+    for it in xrange(data_loader.num_batch):
+        batch =data_loader.next_batch()
+        # predict from the batch
+        prediction = trainable_model.predict(sess, batch)
+        # argmax to convert to vocab
+        prediction = np.argmax(prediction, axis=2)
+
+        # cast batch and prediction to 2d list of strings
+        batch_list = batch.astype(np.str).tolist()
+        pred_list = prediction.astype(np.str).tolist()
+
+        bleu = 0
+        # calculate bleu for each sequence
+        for i in range(len(batch_list)):
+            bleu += corpus_bleu(batch_list[i], pred_list[i])
+        bleu = bleu / len(batch_list)
+        bleu_avg += bleu
+    bleu_avg = bleu_avg / data_loader.num_batch
+
+    return bleu_avg
+
+
 def main():
     random.seed(SEED)
     np.random.seed(SEED)
@@ -113,10 +140,11 @@ def main():
     log.write('pre-training...\n')
     for epoch in xrange(PRE_EPOCH_NUM):
         loss = pre_train_epoch(sess, generator, gen_data_loader)
+        bleu_score = calculate_bleu(sess, generator, eval_data_loader)
         # since the real data is the true data distribution, only evaluate the pretraining loss
         if epoch % 1 == 0:
-            print 'pre-train epoch ', epoch, 'pretrain_loss ', loss
-            buffer = 'epoch:\t'+ str(epoch) + '\tnll:\t' + str(loss) + '\n'
+            print 'pre-train epoch ', epoch, 'pretrain_loss ', loss, 'bleu ', bleu_score
+            buffer = 'epoch:\t' + str(epoch) + '\tnll:\t' + str(loss) + '\n'
             log.write(buffer)
 
     print 'Start pre-training discriminator...'
@@ -144,8 +172,6 @@ def main():
     log.write('adversarial training...\n')
     for total_batch in range(TOTAL_BATCH):
         G_loss = 0
-        G_nll_loss = 0
-        G_valid_loss = 0
         # Train the generator for one step
         for it in range(epochs_generator):
             samples = generator.generate(sess)
@@ -153,10 +179,6 @@ def main():
             feed = {generator.x: samples, generator.rewards: rewards}
             _ = sess.run(generator.g_updates, feed_dict=feed)
             G_loss += generator.g_loss.eval(feed, session=sess)
-
-            # calculate nll (pretrain) and valid loss for G
-            G_nll_loss += calculate_train_loss_epoch(sess, generator, gen_data_loader)
-            G_valid_loss += calculate_train_loss_epoch(sess, generator, eval_data_loader)
 
         # Update roll-out parameters
         rollout.update_params()
@@ -182,9 +204,8 @@ def main():
         # Test the BLEU score
         print('epoch: ' + str(total_batch) +
               ', G_adv_loss: %.8f' % (G_loss/epochs_generator) +
-              ', G_train_loss: %.8f' % (G_nll_loss/epochs_generator) +
-              ', G_valid_loss: %.8f' % (G_valid_loss/epochs_generator) +
-              ', D loss: %.8f' % (D_loss/epochs_discriminator/3))
+              ', D loss: %.8f' % (D_loss/epochs_discriminator/3) +
+              ', bleu score: %.8f' % calculate_bleu(sess, generator, eval_data_loader))
 
     log.close()
 
