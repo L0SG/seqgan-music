@@ -38,10 +38,10 @@ TOTAL_BATCH = 200
 # vocab size for our custom data
 vocab_size = 3841
 # positive data, containing real music sequences
-positive_file = 'dataset_20'
+positive_file = 'dataset/train'
 # negative data from the generator, containing fake sequences
 negative_file = 'dataset_20_negative'
-eval_file = 'save/eval_file.txt'
+valid_file = 'dataset/valid'
 generated_num = 10000
 
 
@@ -59,20 +59,6 @@ def generate_samples(sess, trainable_model, batch_size, generated_num, output_fi
     #         buffer = ' '.join([str(x) for x in poem]) + '\n'
     #         fout.write(buffer)
 
-def target_loss(sess, target_lstm, data_loader):
-    # target_loss means the oracle negative log-likelihood tested with the oracle model "target_lstm"
-    # For more details, please see the Section 4 in https://arxiv.org/abs/1609.05473
-    nll = []
-    data_loader.reset_pointer()
-
-    for it in xrange(data_loader.num_batch):
-        batch = data_loader.next_batch()
-        g_loss = sess.run(target_lstm.pretrain_loss, {target_lstm.x: batch})
-        nll.append(g_loss)
-
-    return np.mean(nll)
-
-
 def pre_train_epoch(sess, trainable_model, data_loader):
     # Pre-train the generator using MLE for one epoch
     supervised_g_losses = []
@@ -89,7 +75,7 @@ def pre_train_epoch(sess, trainable_model, data_loader):
 def main():
     random.seed(SEED)
     np.random.seed(SEED)
-    assert START_TOKEN == 0
+    # assert START_TOKEN == 0
 
     gen_data_loader = Gen_Data_loader(BATCH_SIZE)
     dis_data_loader = Dis_dataloader(BATCH_SIZE)
@@ -104,6 +90,7 @@ def main():
     sess.run(tf.global_variables_initializer())
 
     # generate fake data from the true dataset
+
     gen_data_loader.create_batches(positive_file)
 
     log = open('save/experiment-log.txt', 'w')
