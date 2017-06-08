@@ -172,8 +172,6 @@ def main():
     log.write('adversarial training...\n')
     for total_batch in range(TOTAL_BATCH):
         G_loss = 0
-        G_nll_loss = 0
-        G_valid_loss = 0
         # Train the generator for one step
         for it in range(epochs_generator):
             samples = generator.generate(sess)
