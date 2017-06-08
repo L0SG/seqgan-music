@@ -7,7 +7,7 @@ from discriminator import Discriminator
 from rollout import ROLLOUT
 import cPickle
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 #########################################################################################
 #  Generator  Hyper-parameters
@@ -35,13 +35,13 @@ dis_batch_size = 64
 #########################################################################################
 TOTAL_BATCH = 200
 # vocab size for our custom data
-vocab_size = 3841
+vocab_size = 5000
 # positive data, containing real music sequences
-positive_file = 'dataset/train'
+positive_file = 'dataset/train_ref'
 # negative data from the generator, containing fake sequences
-negative_file = 'dataset/train_negative'
-valid_file = 'dataset/valid'
-generated_num = 3500
+negative_file = 'dataset/train_ref_negative'
+valid_file = 'dataset/valid_ref'
+generated_num = 8000
 
 epochs_generator = 1
 epochs_discriminator = 5
