@@ -40,17 +40,20 @@ class Dis_dataloader():
         # Load data
         positive_examples = []
         negative_examples = []
-        with open(positive_file)as fin:
-            for line in fin:
-                line = line.strip()
-                line = line.split()
+        with open(positive_file, 'rb')as fin:
+            data = cPickle.load(fin)
+            for line in data:
                 parse_line = [int(x) for x in line]
-                positive_examples.append(parse_line)
-        with open(negative_file)as fin:
-            for line in fin:
-                line = line.strip()
-                line = line.split()
+                if len(parse_line) != 20:
+                    print('fuck p')
+                if len(parse_line) == 20:
+                    positive_examples.append(parse_line)
+        with open(negative_file, 'rb')as fin:
+            data = cPickle.load(fin)
+            for line in data:
                 parse_line = [int(x) for x in line]
+                if len(parse_line) != 20:
+                    print('fuck n')
                 if len(parse_line) == 20:
                     negative_examples.append(parse_line)
         self.sentences = np.array(positive_examples + negative_examples)

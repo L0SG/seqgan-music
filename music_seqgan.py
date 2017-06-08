@@ -50,12 +50,14 @@ def generate_samples(sess, trainable_model, batch_size, generated_num, output_fi
     generated_samples = []
     for _ in range(int(generated_num / batch_size)):
         generated_samples.extend(trainable_model.generate(sess))
+    # dump the pickle data
+    with open(negative_file, 'wb') as fp:
+        cPickle.dump(generated_samples, fp, protocol=2)
 
-    with open(output_file, 'w') as fout:
-        for poem in generated_samples:
-            buffer = ' '.join([str(x) for x in poem]) + '\n'
-            fout.write(buffer)
-
+    # with open(output_file, 'w') as fout:
+    #     for poem in generated_samples:
+    #         buffer = ' '.join([str(x) for x in poem]) + '\n'
+    #         fout.write(buffer)
 
 def target_loss(sess, target_lstm, data_loader):
     # target_loss means the oracle negative log-likelihood tested with the oracle model "target_lstm"
