@@ -36,7 +36,7 @@ dis_batch_size = 64
 #########################################################################################
 TOTAL_BATCH = 200
 # vocab size for our custom data
-vocab_size = 3841
+vocab_size = 3681
 # positive data, containing real music sequences
 positive_file = 'dataset/train'
 # negative data from the generator, containing fake sequences
