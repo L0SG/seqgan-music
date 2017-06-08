@@ -130,6 +130,10 @@ class Generator(object):
         output = sess.run(self.pretrain_loss, feed_dict={self.x: x})
         return output
 
+    def predict(self, sess, x):
+        pred = sess.run(self.g_predictions, feed_dict={self.x: x})
+        return pred
+
 
     def init_matrix(self, shape):
         return tf.random_normal(shape, stddev=0.1)
