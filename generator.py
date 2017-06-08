@@ -124,6 +124,13 @@ class Generator(object):
         outputs = sess.run([self.pretrain_updates, self.pretrain_loss], feed_dict={self.x: x})
         return outputs
 
+    # new implementation
+    # calculate nll loss without update
+    def calculate_nll_loss_step(self, sess, x):
+        output = sess.run(self.pretrain_loss, feed_dict={self.x: x})
+        return output
+
+
     def init_matrix(self, shape):
         return tf.random_normal(shape, stddev=0.1)
 

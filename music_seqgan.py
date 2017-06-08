@@ -16,7 +16,8 @@ EMB_DIM = 32 # embedding dimension
 HIDDEN_DIM = 32 # hidden state dimension of lstm cell
 SEQ_LENGTH = 20 # sequence length
 START_TOKEN = 0
-PRE_EPOCH_NUM = 120 # supervise (maximum likelihood estimation) epochs
+PRE_EPOCH_NUM = 1
+# PRE_EPOCH_NUM = 120 # supervise (maximum likelihood estimation) epochs
 SEED = 88
 BATCH_SIZE = 64
 
@@ -43,6 +44,9 @@ negative_file = 'dataset_20_negative'
 valid_file = 'dataset/valid'
 generated_num = 10000
 
+epochs_generator = 1
+epochs_discriminator = 5
+
 
 def generate_samples(sess, trainable_model, batch_size, generated_num, output_file):
     # Generate Samples
@@ -53,10 +57,6 @@ def generate_samples(sess, trainable_model, batch_size, generated_num, output_fi
     with open(negative_file, 'wb') as fp:
         cPickle.dump(generated_samples, fp, protocol=2)
 
-    # with open(output_file, 'w') as fout:
-    #     for poem in generated_samples:
-    #         buffer = ' '.join([str(x) for x in poem]) + '\n'
-    #         fout.write(buffer)
 
 def pre_train_epoch(sess, trainable_model, data_loader):
     # Pre-train the generator using MLE for one epoch
@@ -70,6 +70,20 @@ def pre_train_epoch(sess, trainable_model, data_loader):
 
     return np.mean(supervised_g_losses)
 
+# new implementation
+def calculate_train_loss_epoch(sess, trainable_model, data_loader):
+    # calculate the train loss for the generator
+    # same for pre_train_epoch, but without the supervised grad update
+    supervised_g_losses = []
+    data_loader.reset_pointer()
+
+    for it in xrange(data_loader.num_batch):
+        batch = data_loader.next_batch()
+        g_loss = trainable_model.calculate_nll_loss_step(sess, batch)
+        supervised_g_losses.append(g_loss)
+
+    return np.mean(supervised_g_losses)
+
 
 def main():
     random.seed(SEED)
@@ -78,6 +92,7 @@ def main():
 
     gen_data_loader = Gen_Data_loader(BATCH_SIZE)
     dis_data_loader = Dis_dataloader(BATCH_SIZE)
+    eval_data_loader = Gen_Data_loader(BATCH_SIZE)
 
     generator = Generator(vocab_size, BATCH_SIZE, EMB_DIM, HIDDEN_DIM, SEQ_LENGTH, START_TOKEN)
     discriminator = Discriminator(sequence_length=20, num_classes=2, vocab_size=vocab_size, embedding_size=dis_embedding_dim,
@@ -88,9 +103,10 @@ def main():
     sess = tf.Session(config=config)
     sess.run(tf.global_variables_initializer())
 
-    # generate fake data from the true dataset
-
+    # generate real data from the true dataset
     gen_data_loader.create_batches(positive_file)
+    # generate real validation data from true validation dataset
+    eval_data_loader.create_batches(valid_file)
 
     log = open('save/experiment-log.txt', 'w')
     #  pre-train generator
@@ -106,11 +122,13 @@ def main():
 
     print 'Start pre-training discriminator...'
     # Train 3 epoch on the generated data and do this for 50 times
-    for _ in range(50):
+    for _ in range(1):
+    # for _ in range(50):
         generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
         dis_data_loader.load_train_data(positive_file, negative_file)
         for _ in range(3):
             dis_data_loader.reset_pointer()
+            D_loss = 0
             for it in xrange(dis_data_loader.num_batch):
                 x_batch, y_batch = dis_data_loader.next_batch()
                 feed = {
@@ -119,39 +137,40 @@ def main():
                     discriminator.dropout_keep_prob: dis_dropout_keep_prob
                 }
                 _ = sess.run(discriminator.train_op, feed)
-                print('D loss:' + str(discriminator.loss.eval(session=sess)))
+                D_loss += discriminator.loss.eval(feed, session=sess)
+            print('D loss: ' + str(D_loss/dis_data_loader.num_batch))
     rollout = ROLLOUT(generator, 0.8)
 
     print '#########################################################################'
     print 'Start Adversarial Training...'
     log.write('adversarial training...\n')
     for total_batch in range(TOTAL_BATCH):
+        G_loss = 0
+        G_nll_loss = 0
+        G_valid_loss = 0
         # Train the generator for one step
-        for it in range(1):
+        for it in range(epochs_generator):
             samples = generator.generate(sess)
             rewards = rollout.get_reward(sess, samples, 16, discriminator)
             feed = {generator.x: samples, generator.rewards: rewards}
             _ = sess.run(generator.g_updates, feed_dict=feed)
+            G_loss += generator.g_loss.eval(feed, session=sess)
 
-        # Test the BLEU score
-        if total_batch % 5 == 0 or total_batch == TOTAL_BATCH - 1:
-            """
-            buffer = 'epoch:\t' + str(total_batch) + '\tnll:\t' + str(test_loss) + '\n'
-            print 'total_batch: ', total_batch, 'test_loss: ', test_loss
-            log.write(buffer)
-            """
-            print('epoch: ' + str(total_batch))
+            # calculate nll (pretrain) and valid loss for G
+            G_nll_loss += calculate_train_loss_epoch(sess, generator, gen_data_loader)
+            G_valid_loss += calculate_train_loss_epoch(sess, generator, eval_data_loader)
 
         # Update roll-out parameters
         rollout.update_params()
 
         # Train the discriminator
-        for _ in range(5):
+        D_loss = 0
+        for _ in range(epochs_discriminator):
             generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
             dis_data_loader.load_train_data(positive_file, negative_file)
-
             for _ in range(3):
                 dis_data_loader.reset_pointer()
+
                 for it in xrange(dis_data_loader.num_batch):
                     x_batch, y_batch = dis_data_loader.next_batch()
                     feed = {
@@ -160,7 +179,14 @@ def main():
                         discriminator.dropout_keep_prob: dis_dropout_keep_prob
                     }
                     _ = sess.run(discriminator.train_op, feed)
-                    print('D loss:' + str(discriminator.loss.eval(session=sess)))
+                    D_loss += discriminator.loss.eval(feed, session=sess)
+
+        # Test the BLEU score
+        print('epoch: ' + str(total_batch) +
+              ', G_adv_loss: %.8f' % (G_loss/epochs_generator) +
+              ', G_train_loss: %.8f' % (G_nll_loss/epochs_generator) +
+              ', G_valid_loss: %.8f' % (G_valid_loss/epochs_generator) +
+              ', D loss: %.8f' % (D_loss/epochs_discriminator/3))
 
     log.close()
 
