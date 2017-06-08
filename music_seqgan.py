@@ -5,7 +5,6 @@ from dataloader import Gen_Data_loader, Dis_dataloader
 from generator import Generator
 from discriminator import Discriminator
 from rollout import ROLLOUT
-from target_lstm import TARGET_LSTM
 import cPickle
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
@@ -120,7 +119,7 @@ def main():
                     discriminator.dropout_keep_prob: dis_dropout_keep_prob
                 }
                 _ = sess.run(discriminator.train_op, feed)
-
+                print('D loss:' + str(discriminator.loss.eval(session=sess)))
     rollout = ROLLOUT(generator, 0.8)
 
     print '#########################################################################'
