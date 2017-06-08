@@ -16,8 +16,7 @@ EMB_DIM = 32 # embedding dimension
 HIDDEN_DIM = 32 # hidden state dimension of lstm cell
 SEQ_LENGTH = 20 # sequence length
 START_TOKEN = 0
-PRE_EPOCH_NUM = 1
-# PRE_EPOCH_NUM = 120 # supervise (maximum likelihood estimation) epochs
+PRE_EPOCH_NUM = 120 # supervise (maximum likelihood estimation) epochs
 SEED = 88
 BATCH_SIZE = 64
 
@@ -122,13 +121,12 @@ def main():
 
     print 'Start pre-training discriminator...'
     # Train 3 epoch on the generated data and do this for 50 times
-    for _ in range(1):
-    # for _ in range(50):
+    for epochs in range(50):
         generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
         dis_data_loader.load_train_data(positive_file, negative_file)
+        D_loss = 0
         for _ in range(3):
             dis_data_loader.reset_pointer()
-            D_loss = 0
             for it in xrange(dis_data_loader.num_batch):
                 x_batch, y_batch = dis_data_loader.next_batch()
                 feed = {
@@ -138,7 +136,7 @@ def main():
                 }
                 _ = sess.run(discriminator.train_op, feed)
                 D_loss += discriminator.loss.eval(feed, session=sess)
-            print('D loss: ' + str(D_loss/dis_data_loader.num_batch))
+        print('epoch ' + str(epochs) + ' D loss: ' + str(D_loss/dis_data_loader.num_batch/3))
     rollout = ROLLOUT(generator, 0.8)
 
     print '#########################################################################'
