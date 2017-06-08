@@ -1,4 +1,6 @@
 import numpy as np
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 import random
 from dataloader import Gen_Data_loader, Dis_dataloader
@@ -6,8 +8,7 @@ from generator import Generator
 from discriminator import Discriminator
 from rollout import ROLLOUT
 import cPickle
-import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 #########################################################################################
 #  Generator  Hyper-parameters
@@ -39,12 +40,12 @@ vocab_size = 3841
 # positive data, containing real music sequences
 positive_file = 'dataset/train'
 # negative data from the generator, containing fake sequences
-negative_file = 'dataset_20_negative'
+negative_file = 'dataset/generated'
 valid_file = 'dataset/valid'
-generated_num = 10000
+generated_num = 6734
 
-epochs_generator = 1
-epochs_discriminator = 5
+epochs_generator = 5
+epochs_discriminator = 1
 
 
 def generate_samples(sess, trainable_model, batch_size, generated_num, output_file):
