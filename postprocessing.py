@@ -70,12 +70,12 @@ def convert_pitch(token):
 
 def main():
     # assumption : data is one sequence list, len(seq)=20, element of seq is integer
-    data = [4, 43, 358, 41, 37, 54, 47, 53, 52, 51, 357, 52, 63, 1433, 47, 38, 551, 40, 44, 76]
+    data = [209,191,502,117,503,7,492,9,152,5,438,278,331,39,35,508,140,509,9,106]
 
     sequence = inverse_mapping(data)
     melody, chords = split(sequence)
 
-    fp = stream.write('midi', fp='./dataset/')
+    #fp = stream.write('midi', fp='./dataset/')
 
 
     mt = midi.MidiTrack(1)
