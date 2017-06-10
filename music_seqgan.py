@@ -8,15 +8,16 @@ from rollout import ROLLOUT
 import cPickle
 import os
 from nltk.translate.bleu_score import corpus_bleu
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 import yaml
+import shutil
 
-with open("AutoEncoder.yaml") as stream:
+with open("SeqGAN.yaml") as stream:
     try:
         config = yaml.load(stream)
     except yaml.YAMLError as exc:
         print(exc)
 
+os.environ['CUDA_VISIBLE_DEVICES'] = config['GPU']
 #########################################################################################
 #  Generator  Hyper-parameters
 ######################################################################################
@@ -24,7 +25,8 @@ EMB_DIM = config['EMB_DIM'] # embedding dimension
 HIDDEN_DIM = config['HIDDEN_DIM'] # hidden state dimension of lstm cell
 SEQ_LENGTH = config['SEQ_LENGTH'] # sequence length
 START_TOKEN = config['START_TOKEN']
-PRE_EPOCH_NUM = config['PRE_EPOCH_NUM'] # supervise (maximum likelihood estimation) epochs
+PRE_GEN_EPOCH = config['PRE_GEN_EPOCH'] # supervise (maximum likelihood estimation) epochs for generator
+PRE_DIS_EPOCH = config['PRE_DIS_EPOCH'] # supervise (maximum likelihood estimation) epochs for discriminator
 SEED = config['SEED']
 BATCH_SIZE = config['BATCH_SIZE']
 
@@ -145,18 +147,18 @@ def main():
     #  pre-train generator
     print 'Start pre-training...'
     log.write('pre-training...\n')
-    for epoch in xrange(PRE_EPOCH_NUM):
+    for epoch in xrange(PRE_GEN_EPOCH):
         loss = pre_train_epoch(sess, generator, gen_data_loader)
         bleu_score = calculate_bleu(sess, generator, eval_data_loader)
         # since the real data is the true data distribution, only evaluate the pretraining loss
         if epoch % 1 == 0:
-            buffer = 'pre-train epoch:'+ str(epoch) + ' pretrain_loss:'+ str(loss) + 'bleu:'+ str(bleu_score)
+            buffer = 'pre-train epoch: '+ str(epoch+1) + '  pretrain_loss: '+ str(loss) + '  bleu: '+ str(bleu_score)
             print(buffer)
             log.write(buffer)
 
     print 'Start pre-training discriminator...'
     # Train 3 epoch on the generated data and do this for 50 times
-    for epochs in range(50):
+    for epochs in range(PRE_DIS_EPOCH):
         generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
         dis_data_loader.load_train_data(positive_file, negative_file)
         D_loss = 0
@@ -171,7 +173,7 @@ def main():
                 }
                 _ = sess.run(discriminator.train_op, feed)
                 D_loss += discriminator.loss.eval(feed, session=sess)
-        buffer = 'epoch:' + str(epochs) + ' D loss:' + str(D_loss/dis_data_loader.num_batch/3)
+        buffer = 'epoch: ' + str(epochs+1) + '  D loss: ' + str(D_loss/dis_data_loader.num_batch/3)
         print(buffer)
         log.write(buffer)
     rollout = ROLLOUT(generator, 0.8)
@@ -209,12 +211,20 @@ def main():
                     }
                     _ = sess.run(discriminator.train_op, feed)
                     D_loss += discriminator.loss.eval(feed, session=sess)
-        buffer = 'epoch: ' + str(total_batch) + \
-                 ', G_adv_loss: %.8f' % (G_loss/epochs_generator) + \
-                 ', D loss: %.8f' % (D_loss/epochs_discriminator/3) + \
-                 ', bleu score: %.8f' % calculate_bleu(sess, generator, eval_data_loader)
+        buffer = 'epoch: ' + str(total_batch+1) + \
+                 ',  G_adv_loss: %.12f' % (G_loss/epochs_generator) + \
+                 ',  D loss: %.12f' % (D_loss/epochs_discriminator/3) + \
+                 ',  bleu score: %.12f' % calculate_bleu(sess, generator, eval_data_loader)
         print(buffer)
         log.write(buffer)
+        # save first generated samples
+        if (total_batch+1) == 1:
+            shutil.copy2(negative_file, './save/gen_epoch_'+str(total_batch+1))
+            print 'gen_epoch_'+str(total_batch+1)+' data saved!'
+        # save every 10 epoch, save generated music
+        if (total_batch+1) % 10 == 0:
+            shutil.copy2(negative_file, './save/gen_epoch_'+str(total_batch+1))
+            print 'gen_epoch_' + str(total_batch + 1) + ' data saved!'
     log.close()
 
 

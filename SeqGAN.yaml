@@ -1,3 +1,5 @@
+GPU : '1' # if you have 2 GPU, use '0' or '1'
+
 #########################################################################################
 #  Generator  Hyper-parameters
 ######################################################################################
@@ -5,9 +7,11 @@ EMB_DIM : 32 # embedding dimension
 HIDDEN_DIM : 32 # hidden state dimension of lstm cell
 SEQ_LENGTH : 100 # sequence length
 START_TOKEN : 0
-PRE_EPOCH_NUM : 120 # supervise (maximum likelihood estimation) epochs
 SEED : 88
 BATCH_SIZE : 64
+
+PRE_GEN_EPOCH : 120 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
+PRE_DIS_EPOCH : 50 # supervise (maximum likelihood estimation) epochs for discriminator (default: 50)
 
 #########################################################################################
 #  Discriminator  Hyper-parameters
@@ -22,13 +26,13 @@ dis_batch_size : 64
 #########################################################################################
 #  Basic Training Parameters
 #########################################################################################
-TOTAL_BATCH : 200
+TOTAL_BATCH : 10000
 # vocab size for our custom data
 vocab_size : 3527
 # positive data, containing real music sequences
-positive_file : 'dataset/train'
+positive_file : './dataset/train'
 # negative data from the generator, containing fake sequences
-negative_file : 'dataset/generated'
+negative_file : './dataset/generated3'
 valid_file : 'dataset/valid'
 generated_num : 3500
 

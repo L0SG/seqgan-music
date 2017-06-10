@@ -3,7 +3,7 @@ from tensorflow.python.ops import tensor_array_ops, control_flow_ops
 import numpy as np
 import yaml
 
-with open("AutoEncoder.yaml") as stream:
+with open("SeqGAN.yaml") as stream:
     try:
         config = yaml.load(stream)
     except yaml.YAMLError as exc:

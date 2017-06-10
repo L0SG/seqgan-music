@@ -2,7 +2,7 @@ import numpy as np
 import cPickle
 import yaml
 
-with open("AutoEncoder.yaml") as stream:
+with open("SeqGAN.yaml") as stream:
     try:
         config = yaml.load(stream)
     except yaml.YAMLError as exc:

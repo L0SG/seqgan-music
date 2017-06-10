@@ -73,13 +73,13 @@ def convert_pitch(token):
 
 def main(num_sample):
     # load sequence file
-    with open('./dataset/train', 'rb') as fp:
+    with open('./save/gen_epoch_1', 'rb') as fp:
         seq = pickle.load(fp)
 
     for sample in xrange(num_sample):
         # select random sample of sequence
         seq_idx = randint(0,len(seq))
-        data = seq[0]
+        data = seq[seq_idx]
         # assumption : data is one sequence list, len(seq)=100, element of seq is integer
 
         #real_data = [209,191,502,117,503,7,492,9,152,5,438,278,331,39,35,508,140,509,9,106]
@@ -119,9 +119,9 @@ def main(num_sample):
 
 
         all_parts.append([part_melody, part_chord])
-        fp = all_parts.write('midi', './midi/test_' + str(sample) +'.mid')
+        fp = all_parts.write('midi', './midi/gen_' + str(sample) +'.mid')
         print('file name:',fp)
 
 
 if __name__ == "__main__":
-    main(1)
+    main(10)
