@@ -1,5 +1,17 @@
 import cPickle
 from sklearn.model_selection import train_test_split
+
+# load reference of octaves and chords
+with open('./dataset/octaves', 'rb') as fp:
+    octaves_ref = cPickle.load(fp)
+with open('./dataset/chords', 'rb') as fp:
+    chords_ref = cPickle.load(fp)
+
+
+# load list of unique tokens
+with open('./dataset/tokens', 'rb') as fp:
+    tokens_ref = cPickle.load(fp)
+
 # load preprocessed dataset
 with open('./dataset/dataset_20', 'rb') as fp:
     data = cPickle.load(fp)
@@ -11,10 +23,6 @@ with open('train', 'wb') as fp:
 with open('valid', 'wb') as fp:
     cPickle.dump(valid, fp, protocol=2)
 
-
-# load list of unique tokens
-# with open('./dataset/tokens', 'rb') as fp:
-#     tokens_ref = cPickle.load(fp)
 #tokens = []
 #cnt_tokens = [0] * len(tokens_ref)
 batch = []

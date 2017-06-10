@@ -1,5 +1,6 @@
 from music21 import *
 import pickle
+from random import randint
 
 with open('./dataset/chords', 'rb') as fp:
     chords_ref = pickle.load(fp)
@@ -31,88 +32,98 @@ def split(seq):
 # make note from given token [duration, octave, key, velocity]
 def make_event(token):
     # if token is rest
-    if token[1]==0:
+    if token[2]==0:
         r = note.Rest()
         r.duration.quarterLength = token[0]
-        event = midi.translate.noteToMidiEvents(r)
+        event = r# midi.translate.noteToMidiEvents(r)
     # if token is note
-    elif 0 < token[1] < 7:
+    elif 0 < token[2] < 13:
         p = convert_pitch(token)
-        n = note.Note(p)
+        n = note.Note(p[0])
         n.volume.velocity = token[3]
         n.duration.quarterLength = token[0]
-        event = midi.translate.noteToMidiEvents(n)
+        event = n#midi.translate.noteToMidiEvents(n)
     # if token is chord
     else:
         p = convert_pitch(token)
         c = chord.Chord(p)
         c.volume.velocity = token[3]
         c.duration.quarterLength = token[0]
-        event = midi.translate.chordToMidiEvents(c)
+        event = c#midi.translate.chordToMidiEvents(c)
     return event
 
 # convert (octave and key) to pitch for midi file
 def convert_pitch(token):
-    octave_ind = token[1]
-    key_ind = token[2]
+    # change elements of list from float to integer
+    octave_ind = int(token[1])
+    key_ind = int(token[2])
     # list of scale (C)
-    scale = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
+    scale = ['C#','D','D#','E','F','F#','G','G#','A','A#','B','C']
     # find octave and key
     octave = octaves_ref[octave_ind]
     key = chords_ref[key_ind]
     # check the number of key in chord is same in octave
     assert len(octave) == len(key)
+    # convert
     # convert octave and key to pitch string
     p = []
     for i in xrange(len(key)):
         p.append(scale[key[i]]+str(octave[i]))
     return p
 
-def main():
-    # assumption : data is one sequence list, len(seq)=20, element of seq is integer
-    data = [4, 43, 358, 41, 37, 54, 47, 53, 52, 51, 357, 52, 63, 1433, 47, 38, 551, 40, 44, 76]
+def main(num_sample):
+    # load sequence file
+    with open('./dataset/prep_data', 'rb') as fp:
+        seq = pickle.load(fp)
 
-    sequence = inverse_mapping(data)
-    melody, chords = split(sequence)
+    for sample in xrange(num_sample):
+        # select random sample of sequence
+        seq_idx = randint(0,len(seq))
+        data = seq[0]
+        # assumption : data is one sequence list, len(seq)=20, element of seq is integer
 
-    fp = stream.write('midi', fp='./dataset/')
+        #real_data = [209,191,502,117,503,7,492,9,152,5,438,278,331,39,35,508,140,509,9,106]
+        #data = [39, 652, 80, 747, 61, 36, 3285, 2495, 136, 117, 208, 4, 251, 38, 4, 40, 38, 4, 76, 4]
 
-
-    mt = midi.MidiTrack(1)
-    t=0
-    tLast=0
-    for token in data:
-        token
-
-
+        sequence = inverse_mapping(data)
+        melody, chords = split(sequence)
 
 
-        dt = midi.DeltaTime(mt)
-        dt.time = t-tLast
-        #add to track events
-        mt.events.append(dt)
 
-        me=midi.MidiEvent(mt)
-        me.type="NOTE_ON"
-        me.channel=1
-        me.time= None #d
-        me.pitch = p
-        me.velocity = v
-        mt.events.append(me)
+        all_parts = stream.Stream()
 
-        # add note off / velocity zero message
-        dt = midi.DeltaTime(mt)
-        dt.time = d
-        # add to track events
-        mt.events.append(dt)
+        # make melody stream
+        part_melody = stream.Part()
+        k1 = key.KeySignature(0)
+        part_melody.append(k1)
+        for token in melody:
+            # skip dummy rest
+            if token != [0, 0, 0, 0]:
+                event = make_event(token)
+                # append event to part of melody
+                part_melody.append(event)
 
-        me=midi.MidiEvent(mt)
-        me.type="NOTE_ON"
-        me.channel=1
-        me.time= None #d
-        me.pitch = p
-        me.velocity = 0
-        mt.events.append(me)
+        # make chord stream
+        part_chord = stream.Part()
+        chk_first = 1
+        offset = 0
+        for i in xrange(len(chords)):
+            # skip dummy rest
+            if chords[i] != [0, 0, 0, 0]:
+                # match fist start time of chord
+                if chk_first == 1:
+                    offset = part_melody[i].offset
+                    chk_first = 0
+                event = make_event(chords[i])
+                # append event to part of chord
+                part_chord.append(event)
+                part_chord[-1].offset += offset
+
+
+        all_parts.append([part_melody, part_chord])
+        fp = all_parts.write('midi', './midi/test_' + str(sample) +'.mid')
+        print('file name:',fp)
+
 
 if __name__ == "__main__":
-    main()
+    main(1)
