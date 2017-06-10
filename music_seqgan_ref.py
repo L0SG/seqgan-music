@@ -8,7 +8,7 @@ from rollout import ROLLOUT
 import cPickle
 import os
 from nltk.translate.bleu_score import corpus_bleu
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 #########################################################################################
 #  Generator  Hyper-parameters
@@ -79,7 +79,7 @@ def calculate_train_loss_epoch(sess, trainable_model, data_loader):
 
     for it in xrange(data_loader.num_batch):
         batch = data_loader.next_batch()
-        g_loss = trainable_model.calculate_nll_loss_step(sess, batch)
+        g_loss = sess.run(trainable_model.pretrain_loss, {trainable_model.x: batch})
         supervised_g_losses.append(g_loss)
 
     return np.mean(supervised_g_losses)
@@ -92,7 +92,8 @@ def calculate_bleu(sess, trainable_model, data_loader):
     for it in xrange(data_loader.num_batch):
         batch =data_loader.next_batch()
         # predict from the batch
-        prediction = trainable_model.predict(sess, batch)
+        start_tokens = batch[:, 0]
+        prediction = trainable_model.predict(sess, batch, start_tokens)
         # argmax to convert to vocab
         prediction = np.argmax(prediction, axis=2)
 

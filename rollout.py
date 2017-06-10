@@ -1,6 +1,13 @@
 import tensorflow as tf
 from tensorflow.python.ops import tensor_array_ops, control_flow_ops
 import numpy as np
+import yaml
+
+with open("AutoEncoder.yaml") as stream:
+    try:
+        config = yaml.load(stream)
+    except yaml.YAMLError as exc:
+        print(exc)
 
 
 class ROLLOUT(object):
@@ -114,8 +121,8 @@ class ROLLOUT(object):
         rewards = []
         # iterate over the defined rollout_num
         for i in range(rollout_num):
-            # given_num for time step is explicitly from 1 to 20
-            for given_num in range(1, 20):
+            # given_num for time step is explicitly from 1 to SEQ_LENGTH
+            for given_num in range(1, config['SEQ_LENGTH']):
                 # define feed for generation
                 feed = {self.x: input_x, self.given_num: given_num}
                 # run the gen_x op defined from __init__ with feed

@@ -1,5 +1,12 @@
 import numpy as np
 import cPickle
+import yaml
+
+with open("AutoEncoder.yaml") as stream:
+    try:
+        config = yaml.load(stream)
+    except yaml.YAMLError as exc:
+        print(exc)
 
 class Gen_Data_loader():
     def __init__(self, batch_size):
@@ -13,7 +20,7 @@ class Gen_Data_loader():
             data = cPickle.load(f)
             for line in data:
                 parse_line = [int(x) for x in line]
-                if len(parse_line) == 20:
+                if len(parse_line) == config['SEQ_LENGTH']:
                     self.token_stream.append(parse_line)
 
         self.num_batch = int(len(self.token_stream) / self.batch_size)
@@ -44,17 +51,17 @@ class Dis_dataloader():
             data = cPickle.load(fin)
             for line in data:
                 parse_line = [int(x) for x in line]
-                if len(parse_line) != 20:
+                if len(parse_line) != config['SEQ_LENGTH']:
                     print('fuck p')
-                if len(parse_line) == 20:
+                if len(parse_line) == config['SEQ_LENGTH']:
                     positive_examples.append(parse_line)
         with open(negative_file, 'rb')as fin:
             data = cPickle.load(fin)
             for line in data:
                 parse_line = [int(x) for x in line]
-                if len(parse_line) != 20:
+                if len(parse_line) != config['SEQ_LENGTH']:
                     print('fuck n')
-                if len(parse_line) == 20:
+                if len(parse_line) == config['SEQ_LENGTH']:
                     negative_examples.append(parse_line)
         self.sentences = np.array(positive_examples + negative_examples)
 

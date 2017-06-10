@@ -130,8 +130,8 @@ class Generator(object):
         output = sess.run(self.pretrain_loss, feed_dict={self.x: x})
         return output
 
-    def predict(self, sess, x):
-        pred = sess.run(self.g_predictions, feed_dict={self.x: x})
+    def predict(self, sess, x, start_token):
+        pred = sess.run(self.g_predictions, feed_dict={self.x: x, self.start_token: start_token})
         return pred
 
 
