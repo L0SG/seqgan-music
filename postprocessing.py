@@ -73,14 +73,14 @@ def convert_pitch(token):
 
 def main(num_sample):
     # load sequence file
-    with open('./dataset/prep_data', 'rb') as fp:
+    with open('./dataset/train', 'rb') as fp:
         seq = pickle.load(fp)
 
     for sample in xrange(num_sample):
         # select random sample of sequence
         seq_idx = randint(0,len(seq))
         data = seq[0]
-        # assumption : data is one sequence list, len(seq)=20, element of seq is integer
+        # assumption : data is one sequence list, len(seq)=100, element of seq is integer
 
         #real_data = [209,191,502,117,503,7,492,9,152,5,438,278,331,39,35,508,140,509,9,106]
         #data = [39, 652, 80, 747, 61, 36, 3285, 2495, 136, 117, 208, 4, 251, 38, 4, 40, 38, 4, 76, 4]
@@ -94,8 +94,6 @@ def main(num_sample):
 
         # make melody stream
         part_melody = stream.Part()
-        k1 = key.KeySignature(0)
-        part_melody.append(k1)
         for token in melody:
             # skip dummy rest
             if token != [0, 0, 0, 0]:
