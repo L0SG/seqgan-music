@@ -1,6 +1,7 @@
 import numpy as np
 import cPickle
 import yaml
+import random
 
 with open("SeqGAN.yaml") as stream:
     try:
@@ -65,6 +66,10 @@ class Dis_dataloader():
                     continue
                 if len(parse_line) == config['SEQ_LENGTH']:
                     negative_examples.append(parse_line)
+
+        # shuffle the pos and neg examples
+        random.shuffle(positive_examples)
+        random.shuffle(negative_examples)
 
         # ditch the pos & neg samples not matching the batch size
         if len(positive_examples) % self.batch_size != 0:

@@ -8,8 +8,8 @@ HIDDEN_DIM : 128 # hidden state dimension of lstm cell
 SEQ_LENGTH : 100 # sequence length
 START_TOKEN : 0
 
-PRE_GEN_EPOCH : 2 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
-PRE_DIS_EPOCH : 2 # supervise (maximum likelihood estimation) epochs for discriminator (default: 50)
+PRE_GEN_EPOCH : 50 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
+PRE_DIS_EPOCH : 50 # supervise (maximum likelihood estimation) epochs for discriminator (default: 50)
 SEED : 88
 BATCH_SIZE : 64
 
