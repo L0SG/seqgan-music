@@ -7,7 +7,7 @@ EMB_DIM : 128 # embedding dimension
 HIDDEN_DIM : 128 # hidden state dimension of lstm cell
 SEQ_LENGTH : 100 # sequence length
 START_TOKEN : 0
-PRE_EPOCH_NUM : 150 # supervise (maximum likelihood estimation) epochs
+PRE_GEN_EPOCH : 150 # supervise (maximum likelihood estimation) epochs
 SEED : 88
 BATCH_SIZE : 64
 
