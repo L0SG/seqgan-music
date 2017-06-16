@@ -10,8 +10,8 @@ START_TOKEN : 0
 SEED : 88
 BATCH_SIZE : 64
 
-PRE_GEN_EPOCH : 120 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
-PRE_DIS_EPOCH : 50 # supervise (maximum likelihood estimation) epochs for discriminator (default: 50)
+PRE_GEN_EPOCH : 2 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
+PRE_DIS_EPOCH : 2 # supervise (maximum likelihood estimation) epochs for discriminator (default: 50)
 
 #########################################################################################
 #  Discriminator  Hyper-parameters
