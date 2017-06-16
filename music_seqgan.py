@@ -138,7 +138,8 @@ def main():
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
     sess.run(tf.global_variables_initializer())
-
+    # define saver
+    saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=1)
     # generate real data from the true dataset
     gen_data_loader.create_batches(positive_file)
     # generate real validation data from true validation dataset
@@ -164,6 +165,7 @@ def main():
             generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
             POST.main(negative_file, 5, -PRE_GEN_EPOCH)
 
+
     print 'Start pre-training discriminator...'
     # Train 3 epoch on the generated data and do this for 50 times
     for epochs in range(PRE_DIS_EPOCH):
@@ -185,10 +187,12 @@ def main():
         print(buffer)
         log.write(buffer)
     rollout = ROLLOUT(generator, 0.8)
+    save_checkpoint(sess, saver,PRE_GEN_EPOCH, PRE_DIS_EPOCH)
 
     print '#########################################################################'
     print 'Start Adversarial Training...'
     log.write('adversarial training...\n')
+    load_checkpoint(sess, saver)
     for total_batch in range(TOTAL_BATCH):
         G_loss = 0
         # Train the generator for one step
@@ -229,6 +233,18 @@ def main():
         POST.main(negative_file + "_EP_" + str(total_batch), 5, total_batch)
     log.close()
 
+def load_checkpoint(sess, saver):
+    ckpt = tf.train.get_checkpoint_state('save')
+    if ckpt and ckpt.model_checkpoint_path:
+        saver.restore(sess, tf.train.latest_checkpoint('save'))
+    return
+
+
+def save_checkpoint(sess, saver, g_ep, d_ep):
+    checkpoint_path = os.path.join('save', 'pretrain_g'+str(g_ep)+'_d'+str(d_ep)+'.ckpt')
+    saver.save(sess, checkpoint_path)
+    print("model saved to {}".format(checkpoint_path))
+    return
 
 if __name__ == '__main__':
     main()
