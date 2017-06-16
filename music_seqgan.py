@@ -10,6 +10,7 @@ import os
 from nltk.translate.bleu_score import corpus_bleu
 import yaml
 import shutil
+import postprocessing as POST
 
 with open("SeqGAN.yaml") as stream:
     try:
@@ -63,7 +64,7 @@ def generate_samples(sess, trainable_model, batch_size, generated_num, output_fi
     for _ in range(int(generated_num / batch_size)):
         generated_samples.extend(trainable_model.generate(sess))
     # dump the pickle data
-    with open(negative_file, 'wb') as fp:
+    with open(output_file, 'wb') as fp:
         cPickle.dump(generated_samples, fp, protocol=2)
 
 
@@ -99,7 +100,7 @@ def calculate_bleu(sess, trainable_model, data_loader):
     bleu_avg = 0
 
     for it in xrange(data_loader.num_batch):
-        batch =data_loader.next_batch()
+        batch = data_loader.next_batch()
         # predict from the batch
         start_tokens = batch[:, 0]
         prediction = trainable_model.predict(sess, batch, start_tokens)
@@ -151,10 +152,17 @@ def main():
         loss = pre_train_epoch(sess, generator, gen_data_loader)
         bleu_score = calculate_bleu(sess, generator, eval_data_loader)
         # since the real data is the true data distribution, only evaluate the pretraining loss
-        if epoch % 1 == 0:
-            buffer = 'pre-train epoch: '+ str(epoch+1) + '  pretrain_loss: '+ str(loss) + '  bleu: '+ str(bleu_score)
-            print(buffer)
-            log.write(buffer)
+
+        buffer = 'pre-train epoch: ' + str(epoch) + ' pretrain_loss: ' + str(loss) + ' bleu: ' + str(bleu_score)
+        print(buffer)
+        log.write(buffer)
+
+        if epoch == 0:
+            generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
+            POST.main(negative_file, 5, -1)
+        elif epoch == PRE_GEN_EPOCH - 1:
+            generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
+            POST.main(negative_file, 5, -PRE_GEN_EPOCH)
 
     print 'Start pre-training discriminator...'
     # Train 3 epoch on the generated data and do this for 50 times
@@ -217,14 +225,8 @@ def main():
                  ',  bleu score: %.12f' % calculate_bleu(sess, generator, eval_data_loader)
         print(buffer)
         log.write(buffer)
-        # save first generated samples
-        if (total_batch+1) == 1:
-            shutil.copy2(negative_file, './save/gen_epoch_'+str(total_batch+1))
-            print 'gen_epoch_'+str(total_batch+1)+' data saved!'
-        # save every 10 epoch, save generated music
-        if (total_batch+1) % 10 == 0:
-            shutil.copy2(negative_file, './save/gen_epoch_'+str(total_batch+1))
-            print 'gen_epoch_' + str(total_batch + 1) + ' data saved!'
+        generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file + "_EP_" + str(total_batch))
+        POST.main(negative_file + "_EP_" + str(total_batch), 5, total_batch)
     log.close()
 
 

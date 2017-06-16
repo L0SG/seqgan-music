@@ -71,9 +71,10 @@ def convert_pitch(token):
         p.append(scale[key[i]]+str(octave[i]))
     return p
 
-def main(num_sample):
+def main(DATA, num_sample, epoch):
     # load sequence file
-    with open('./save/gen_epoch_1', 'rb') as fp:
+    #with open('./dataset/train', 'rb') as fp:
+    with open(DATA, 'rb') as fp:
         seq = pickle.load(fp)
 
     for sample in xrange(num_sample):
@@ -119,9 +120,10 @@ def main(num_sample):
 
 
         all_parts.append([part_melody, part_chord])
-        fp = all_parts.write('midi', './midi/gen_' + str(sample) +'.mid')
-        print('file name:',fp)
+	fp = all_parts.write('midi', './Result/Ep_' + str(epoch) + '_test_' + str(sample) +'.mid')
+        #fp = all_parts.write('midi', './midi/test_' + str(sample) +'.mid')
+        #print('file name:',fp)
 
 
 if __name__ == "__main__":
-    main(10)
+    main(1)
