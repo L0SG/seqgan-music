@@ -2,10 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9ddfca30-d838-4322-9eb6-6afe408c27c9" name="Default" comment="">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/SeqGAN_reference.yaml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/music_seqgan.py" afterPath="$PROJECT_DIR$/music_seqgan.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/postprocessing.py" afterPath="$PROJECT_DIR$/postprocessing.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/save/experiment-log.txt" afterPath="$PROJECT_DIR$/save/experiment-log.txt" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SeqGAN.yaml" afterPath="$PROJECT_DIR$/SeqGAN.yaml" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -44,7 +43,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="postprocessing.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="postprocessing.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/postprocessing.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="1440">
@@ -56,11 +55,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SeqGAN.yaml" pinned="false" current-in-tab="false">
+      <file leaf-file-name="SeqGAN.yaml" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/SeqGAN.yaml">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="576">
-              <caret line="32" column="33" lean-forward="true" selection-start-line="32" selection-start-column="33" selection-end-line="32" selection-end-column="33" />
+            <state relative-caret-position="504">
+              <caret line="28" column="17" lean-forward="true" selection-start-line="28" selection-start-column="17" selection-end-line="28" selection-end-column="17" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="SeqGAN_reference.yaml" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/SeqGAN_reference.yaml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="233">
+              <caret line="39" column="24" lean-forward="false" selection-start-line="39" selection-start-column="24" selection-end-line="39" selection-end-column="24" />
               <folding />
             </state>
           </provider>
@@ -129,11 +138,12 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/SeqGAN.yaml" />
         <option value="$PROJECT_DIR$/dataloader.py" />
         <option value="$PROJECT_DIR$/music_seqgan_sunwoo.py" />
         <option value="$PROJECT_DIR$/postprocessing_sunwoo.py" />
         <option value="$PROJECT_DIR$/music_seqgan.py" />
+        <option value="$PROJECT_DIR$/SeqGAN.yaml" />
+        <option value="$PROJECT_DIR$/SeqGAN_reference.yaml" />
       </list>
     </option>
   </component>
@@ -390,13 +400,21 @@
       <option name="project" value="LOCAL" />
       <updated>1497615770678</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="generate midi files per epoch">
+      <created>1497617420860</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1497617420860</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="-1" y="24" width="1282" height="753" extended-state="6" />
+    <editor active="true" />
     <layout>
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16693678" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16693678" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
@@ -425,7 +443,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="implement shuffle per epoch in reset_pointer &amp; pos, neg only batches" />
-    <option name="LAST_COMMIT_MESSAGE" value="implement shuffle per epoch in reset_pointer &amp; pos, neg only batches" />
+    <MESSAGE value="generate midi files per epoch" />
+    <option name="LAST_COMMIT_MESSAGE" value="generate midi files per epoch" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -479,14 +498,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/SeqGAN.yaml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="576">
-          <caret line="32" column="33" lean-forward="true" selection-start-line="32" selection-start-column="33" selection-end-line="32" selection-end-column="33" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/music_seqgan.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="103">
@@ -532,6 +543,22 @@
           <folding>
             <element signature="e#0#21#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SeqGAN_reference.yaml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="233">
+          <caret line="39" column="24" lean-forward="false" selection-start-line="39" selection-start-column="24" selection-end-line="39" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SeqGAN.yaml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="504">
+          <caret line="28" column="17" lean-forward="true" selection-start-line="28" selection-start-column="17" selection-end-line="28" selection-end-column="17" />
+          <folding />
         </state>
       </provider>
     </entry>
