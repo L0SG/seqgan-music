@@ -38,11 +38,11 @@ sequence = []
 for song in data:
     for token in song:
         idx = tokens_ref.index(token)
-        # if len(sequence) < 20:
-        sequence.append(idx)
-        # else:
-    batch.append(sequence)
-    sequence = []
+        if len(sequence) < 100:
+            sequence.append(idx)
+        else:
+            batch.append(sequence)
+            sequence = []
 
 # save file
 with open('./dataset/prep_data', 'wb') as fp:

@@ -1,10 +1,10 @@
-GPU : '1' # if you have 2 GPU, use '0' or '1'
+GPU : '0' # if you have 2 GPU, use '0' or '1'
 
 #########################################################################################
 #  Generator  Hyper-parameters
 ######################################################################################
 EMB_DIM : 128 # embedding dimension
-HIDDEN_DIM : 128 # hidden state dimension of lstm cell
+HIDDEN_DIM : 200 # hidden state dimension of lstm cell
 SEQ_LENGTH : 100 # sequence length
 START_TOKEN : 0
 
@@ -28,7 +28,7 @@ dis_batch_size : 64
 #########################################################################################
 TOTAL_BATCH : 2000
 # vocab size for our custom data
-vocab_size : 3527
+vocab_size : 3216
 # positive data, containing real music sequences
 positive_file : 'dataset/train'
 # negative data from the generator, containing fake sequences

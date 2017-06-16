@@ -25,8 +25,8 @@ def split(seq):
     chords = []
     for token in seq:
         # in every token, first four elements are melody and last four elements are chord
-        melody.append(token[0:4])
-        chords.append(token[4:])
+        melody.append(token[0:3])
+        chords.append(token[3:])
     return melody, chords
 
 # make note from given token [duration, octave, key, velocity]
@@ -40,14 +40,14 @@ def make_event(token):
     elif 0 < token[2] < 13:
         p = convert_pitch(token)
         n = note.Note(p[0])
-        n.volume.velocity = token[3]
+        n.volume.velocity = 80
         n.duration.quarterLength = token[0]
         event = n#midi.translate.noteToMidiEvents(n)
     # if token is chord
     else:
         p = convert_pitch(token)
         c = chord.Chord(p)
-        c.volume.velocity = token[3]
+        c.volume.velocity = 80
         c.duration.quarterLength = token[0]
         event = c#midi.translate.chordToMidiEvents(c)
     return event
@@ -97,7 +97,7 @@ def main(DATA, num_sample, epoch):
         part_melody = stream.Part()
         for token in melody:
             # skip dummy rest
-            if token != [0, 0, 0, 0]:
+            if token != [0, 0, 0]:
                 event = make_event(token)
                 # append event to part of melody
                 part_melody.append(event)
@@ -108,7 +108,7 @@ def main(DATA, num_sample, epoch):
         offset = 0
         for i in xrange(len(chords)):
             # skip dummy rest
-            if chords[i] != [0, 0, 0, 0]:
+            if chords[i] != [0, 0, 0]:
                 # match fist start time of chord
                 if chk_first == 1:
                     offset = part_melody[i].offset
@@ -120,10 +120,10 @@ def main(DATA, num_sample, epoch):
 
 
         all_parts.append([part_melody, part_chord])
-	fp = all_parts.write('midi', './Result/Ep_' + str(epoch) + '_test_' + str(sample) +'.mid')
+	fp = all_parts.write('midi', './midi/Ep_' + str(epoch) + '_test_' + str(sample) +'.mid')
         #fp = all_parts.write('midi', './midi/test_' + str(sample) +'.mid')
         #print('file name:',fp)
 
 
 if __name__ == "__main__":
-    main(1)
+    main('./dataset/train',1,1)

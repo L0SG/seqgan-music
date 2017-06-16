@@ -34,7 +34,7 @@ positive_file : './dataset/train'
 # negative data from the generator, containing fake sequences
 negative_file : './dataset/generated3'
 valid_file : 'dataset/valid'
-generated_num : 3500
+generated_num : 3216
 
 epochs_generator : 1
 epochs_discriminator : 5
