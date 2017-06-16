@@ -120,7 +120,7 @@ def main(DATA, num_sample, epoch):
 
 
         all_parts.append([part_melody, part_chord])
-	fp = all_parts.write('midi', './midi/Ep_' + str(epoch) + '_test_' + str(sample) +'.mid')
+	fp = all_parts.write('midi', './midi_r128_u0.9_glr1e4/Ep_' + str(epoch) + '_test_' + str(sample) +'.mid')
         #fp = all_parts.write('midi', './midi/test_' + str(sample) +'.mid')
         #print('file name:',fp)
 

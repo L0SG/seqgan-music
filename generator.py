@@ -4,7 +4,7 @@ from tensorflow.python.ops import tensor_array_ops, control_flow_ops
 class Generator(object):
     def __init__(self, num_emb, batch_size, emb_dim, hidden_dim,
                  sequence_length, start_token,
-                 learning_rate=0.01, reward_gamma=0.95):
+                 learning_rate=0.0001, reward_gamma=0.95):
         self.num_emb = num_emb
         self.batch_size = batch_size
         self.emb_dim = emb_dim

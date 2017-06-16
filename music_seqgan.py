@@ -146,6 +146,7 @@ def main():
     eval_data_loader.create_batches(valid_file)
 
     log = open('save/experiment-log.txt', 'w')
+    """
     #  pre-train generator
     print 'Start pre-training...'
     log.write('pre-training...\n')
@@ -186,9 +187,11 @@ def main():
         buffer = 'epoch: ' + str(epochs+1) + '  D loss: ' + str(D_loss/dis_data_loader.num_batch/3)
         print(buffer)
         log.write(buffer)
-    rollout = ROLLOUT(generator, 0.8)
-    save_checkpoint(sess, saver,PRE_GEN_EPOCH, PRE_DIS_EPOCH)
 
+    save_checkpoint(sess, saver,PRE_GEN_EPOCH, PRE_DIS_EPOCH)
+    """
+
+    rollout = ROLLOUT(generator, 0.9)
     print '#########################################################################'
     print 'Start Adversarial Training...'
     log.write('adversarial training...\n')
@@ -198,7 +201,7 @@ def main():
         # Train the generator for one step
         for it in range(epochs_generator):
             samples = generator.generate(sess)
-            rewards = rollout.get_reward(sess, samples, 16, discriminator)
+            rewards = rollout.get_reward(sess, samples, 32, discriminator)
             feed = {generator.x: samples, generator.rewards: rewards}
             _ = sess.run(generator.g_updates, feed_dict=feed)
             G_loss += generator.g_loss.eval(feed, session=sess)
@@ -237,6 +240,7 @@ def load_checkpoint(sess, saver):
     ckpt = tf.train.get_checkpoint_state('save')
     if ckpt and ckpt.model_checkpoint_path:
         saver.restore(sess, tf.train.latest_checkpoint('save'))
+        print('checkpoint loaded')
     return
 
 
