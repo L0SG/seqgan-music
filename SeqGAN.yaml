@@ -1,4 +1,4 @@
-GPU : '1' # if you have 2 GPU, use '0' or '1'
+GPU : '0' # if you have 2 GPU, use '0' or '1'
 
 #########################################################################################
 #  Generator  Hyper-parameters
