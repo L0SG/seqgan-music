@@ -71,19 +71,20 @@ class preprocessing(object):
         return all_parts
 
     def streaming(self, part, event, part_tuples):
+        # find the set of chords and octaves
         # save start time
         for y in event.contextSites():
             if y[0] is part:
                 offset = y[1]
         # if current event is chord
         if getattr(event, 'isChord', None) and event.isChord:
-            # chord pitch wjdfl
+            # chord pitch ordering
             octaves = []
             for pitch in event.pitches:
                 octaves.append(pitch.octave)
             sort_idx = [i[0] for i in sorted(enumerate(event.pitchClasses), key=lambda x: x[1])]
             octaves = [x for (y, x) in sorted(zip(sort_idx, octaves))]
-
+            # if current chord or octave is unique until now, add it to the list
             if event.orderedPitchClasses not in self.chords:
                 self.chords.append(event.orderedPitchClasses)
             if octaves not in self.chord_octaves:
@@ -91,9 +92,7 @@ class preprocessing(object):
 
         # if current event is note
         if getattr(event, 'isNote', None) and event.isNote:
-            # change to key
-            # make one step in sequence
-
+            # find set of octaves and pitches of note
             if event.pitch.octave not in self.note_octaves:
                 self.note_octaves.append(event.pitch.octave)
             if event.pitchClass not in self.notes:
@@ -104,53 +103,10 @@ class preprocessing(object):
             part_tuples.append([offset, event.quarterLength, 0, 0, 0])
         return part_tuples
 
-    def compare_parts(self, all_parts):
-        if len(all_parts) < 2:
-            raise ValueError('the number of parts is less than two!')
-        melody = all_parts[0]
-        chord = all_parts[1]
-        while 1:
-            for i in range(len(melody)):
-                try:
-                    if melody[i][0] < chord[i][0]:
-                        chord.insert(i, [melody[i][0], 0, 0, 0, 0])
-                except:
-                    chord.append([melody[i][0], 0, 0, 0, 0])
-            if self.chk_same(melody, chord):
-                return all_parts
-
-            for i in range(len(chord)):
-                try:
-                    if chord[i][0] < melody[i][0]:
-                        melody.insert(i, [chord[i][0], 0, 0, 0, 0])
-                except:
-                    # if length of chord is bigger than that of melody
-                    melody.append([chord[i][0], 0, 0, 0, 0])
-            if self.chk_same(melody, chord):
-                return all_parts
-
-    def chk_same(self, melody, chord):
-        mel_time = [item[0] for item in melody]
-        cho_time = [item[0] for item in chord]
-        if mel_time == cho_time:
-            return True
-        else:
-            return False
-
-    def sequentialize(self, parsed):
-        if len(parsed[0]) != len(parsed[1]):
-            raise ValueError
-        sequence = []
-        for i in range(len(parsed[0])):
-            token = copy(parsed[0][i][1:])
-            token.extend(parsed[1][i][1:])
-            sequence.append(token)
-        return sequence
-
 
 if __name__ == "__main__":
 
-    # preprocessing
+    # print set of octaves and chords
     a = preprocessing()
     data_dir = './Nottingham/all/'
     dataset = []

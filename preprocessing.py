@@ -63,7 +63,6 @@ class preprocessing(object):
                     part_tuples = self.streaming(part, event, part_tuples)
             if part_tuples != []:
                 all_parts.append(part_tuples)
-        # print(piece.analyze('key'))
         parsed = self.compare_parts(all_parts)
         sequence = self.sequentialize(parsed)
         return sequence
@@ -75,7 +74,7 @@ class preprocessing(object):
                 offset = y[1]
         # if current event is chord
         if getattr(event, 'isChord', None) and event.isChord:
-            # chord pitch wjdfl
+            # chord pitch ordering
             octaves = []
             for pitch in event.pitches:
                 octaves.append(pitch.octave)
@@ -100,21 +99,23 @@ class preprocessing(object):
         return part_tuples
 
     def compare_parts(self, all_parts):
+        # compare the length of the melody and the code and fill dummy notes
+        # check the number of parts is two (melody & chord)
         if len(all_parts) < 2:
             raise ValueError('the number of parts is less than two!')
         melody = all_parts[0]
         chord = all_parts[1]
-        while 1:
+        while 1: # repeat until the sequence length of the melody and chord match
             for i in range(len(melody)):
-                try:
+                try: # if the start time of the chord and melody does not match, add a dummy note
                     if melody[i][0] < chord[i][0]:
                         chord.insert(i, [melody[i][0], 0, 0, 0])  # , 0])
-                except:
+                except: # if the melody is longer at the end of sequence, add a dummy note
                     chord.append([melody[i][0], 0, 0, 0])  # , 0])
             if self.chk_same(melody, chord):
                 return all_parts
 
-            for i in range(len(chord)):
+            for i in range(len(chord)): # perform the same operation on the chord
                 try:
                     if chord[i][0] < melody[i][0]:
                         melody.insert(i, [chord[i][0], 0, 0, 0])  # , 0])
@@ -125,6 +126,7 @@ class preprocessing(object):
                 return all_parts
 
     def chk_same(self, melody, chord):
+        # check start times in sequence of melody and chord are same
         mel_time = [item[0] for item in melody]
         cho_time = [item[0] for item in chord]
         if mel_time == cho_time:
@@ -133,6 +135,7 @@ class preprocessing(object):
             return False
 
     def sequentialize(self, parsed):
+        # since the start time of the chord and the melody match, the start time can be removed
         if len(parsed[0]) != len(parsed[1]):
             raise ValueError
         sequence = []
@@ -153,12 +156,12 @@ if __name__ == "__main__":
         print(file)
         seq = a.parsing(data_dir + file)
         dataset.append(seq)
-
-    with open('./novel/dataset', 'wb') as fp:
+    # save preprocessed data
+    with open('./dataset/dataset', 'wb') as fp:
         pickle.dump(dataset, fp)
 
     # fraction to float & for python2
-    with open('./novel/dataset', 'rb') as fp:
+    with open('./dataset/dataset', 'rb') as fp:
         data_fr = pickle.load(fp)
         data_str = []
         for i in data_fr:
@@ -175,7 +178,7 @@ if __name__ == "__main__":
                 song2.append(list(map(float, j)))
             data2.append(song2)
 
-        with open('./novel/dataset2', 'wb') as fp:
+        with open('./dataset/dataset2', 'wb') as fp:
             pickle.dump(data2, fp, protocol=2)
         print('done!')
 
