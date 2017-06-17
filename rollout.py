@@ -1,6 +1,13 @@
 import tensorflow as tf
 from tensorflow.python.ops import tensor_array_ops, control_flow_ops
 import numpy as np
+import yaml
+
+with open("SeqGAN.yaml") as stream:
+    try:
+        config = yaml.load(stream)
+    except yaml.YAMLError as exc:
+        print(exc)
 
 
 class ROLLOUT(object):
@@ -18,7 +25,7 @@ class ROLLOUT(object):
         self.emb_dim = self.lstm.emb_dim
         self.hidden_dim = self.lstm.hidden_dim
         self.sequence_length = self.lstm.sequence_length
-        # what is tf.identity?
+        # copy the start token and learning rate of the generator
         self.start_token = tf.identity(self.lstm.start_token)
         self.learning_rate = self.lstm.learning_rate
         # define the generator embeddings & units
@@ -114,8 +121,8 @@ class ROLLOUT(object):
         rewards = []
         # iterate over the defined rollout_num
         for i in range(rollout_num):
-            # given_num for time step is explicitly from 1 to 20
-            for given_num in range(1, 20):
+            # given_num for time step is explicitly from 1 to SEQ_LENGTH
+            for given_num in range(1, config['SEQ_LENGTH']):
                 # define feed for generation
                 feed = {self.x: input_x, self.given_num: given_num}
                 # run the gen_x op defined from __init__ with feed
@@ -132,19 +139,20 @@ class ROLLOUT(object):
                     rewards[given_num-1] += ypred
 
             # the last token reward
-                feed = {discriminator.input_x: input_x, discriminator.dropout_keep_prob: 1.0}
-                ypred_for_auc = sess.run(discriminator.ypred_for_auc, feed)
-                ypred = np.array([item[1] for item in ypred_for_auc])
-                if i == 0:
-                    rewards.append(ypred)
-                else:
-                    rewards[19] += ypred
+            feed = {discriminator.input_x: input_x, discriminator.dropout_keep_prob: 1.0}
+            ypred_for_auc = sess.run(discriminator.ypred_for_auc, feed)
+            ypred = np.array([item[1] for item in ypred_for_auc])
+            if i == 0:
+                rewards.append(ypred)
+            else:
+                rewards[19] += ypred
         # average out the rewards, with shape [batch_size, seq_length]
         rewards = np.transpose(np.array(rewards)) / (1.0 * rollout_num)
         return rewards
 
     def create_recurrent_unit(self):
         # Weights and Bias for input and hidden tensor
+        # copy-paste of the generator: the original paper assumes structure of rollout = generator
         self.Wi = tf.identity(self.lstm.Wi)
         self.Ui = tf.identity(self.lstm.Ui)
         self.bi = tf.identity(self.lstm.bi)
