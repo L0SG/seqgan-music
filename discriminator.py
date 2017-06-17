@@ -130,6 +130,8 @@ class Discriminator(object):
                 self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
 
         self.params = [param for param in tf.trainable_variables() if 'discriminator' in param.name]
+        # adam optimzier for discriminator
+        # may want to use SGD for stable learning of D
         d_optimizer = tf.train.AdamOptimizer(1e-4)
         grads_and_vars = d_optimizer.compute_gradients(self.loss, self.params, aggregation_method=2)
         self.train_op = d_optimizer.apply_gradients(grads_and_vars)

@@ -67,6 +67,7 @@ class Dis_dataloader():
                 if len(parse_line) == config['SEQ_LENGTH']:
                     negative_examples.append(parse_line)
 
+        # pos / neg only batches implementation
         # shuffle the pos and neg examples
         random.shuffle(positive_examples)
         random.shuffle(negative_examples)
@@ -87,7 +88,7 @@ class Dis_dataloader():
 
 
 
-        # shuffling mixes positive & negative data
+        # shuffling here mixes positive & negative data
         # however, separating pos & neg batches is said to be better
         """
         # Shuffle the data
@@ -113,7 +114,7 @@ class Dis_dataloader():
     def reset_pointer(self):
         self.pointer = 0
 
-        # shuffle the data
+        # shuffle the data batch-wise when reset
         shuffle_temp = list(zip(self.sentences_batches, self.labels_batches))
         np.random.shuffle(shuffle_temp)
         self.sentences_batches, self.labels_batches = zip(*shuffle_temp)

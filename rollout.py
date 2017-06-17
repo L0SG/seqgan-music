@@ -25,7 +25,7 @@ class ROLLOUT(object):
         self.emb_dim = self.lstm.emb_dim
         self.hidden_dim = self.lstm.hidden_dim
         self.sequence_length = self.lstm.sequence_length
-        # what is tf.identity?
+        # copy the start token and learning rate of the generator
         self.start_token = tf.identity(self.lstm.start_token)
         self.learning_rate = self.lstm.learning_rate
         # define the generator embeddings & units
@@ -152,6 +152,7 @@ class ROLLOUT(object):
 
     def create_recurrent_unit(self):
         # Weights and Bias for input and hidden tensor
+        # copy-paste of the generator: the original paper assumes structure of rollout = generator
         self.Wi = tf.identity(self.lstm.Wi)
         self.Ui = tf.identity(self.lstm.Ui)
         self.bi = tf.identity(self.lstm.bi)

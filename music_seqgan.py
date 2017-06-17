@@ -59,6 +59,10 @@ epochs_discriminator = config['epochs_discriminator']
 
 
 def generate_samples(sess, trainable_model, batch_size, generated_num, output_file):
+    # unconditinally generate random samples
+    # it is used for test sample generation & negative data generation
+    # called per D learning phase
+
     # Generate Samples
     generated_samples = []
     for _ in range(int(generated_num / batch_size)):
@@ -70,6 +74,7 @@ def generate_samples(sess, trainable_model, batch_size, generated_num, output_fi
 
 def pre_train_epoch(sess, trainable_model, data_loader):
     # Pre-train the generator using MLE for one epoch
+    # independent of D, the standard RNN learning
     supervised_g_losses = []
     data_loader.reset_pointer()
 
@@ -80,15 +85,18 @@ def pre_train_epoch(sess, trainable_model, data_loader):
 
     return np.mean(supervised_g_losses)
 
-# new implementation
+# new implementations
 def calculate_train_loss_epoch(sess, trainable_model, data_loader):
     # calculate the train loss for the generator
     # same for pre_train_epoch, but without the supervised grad update
+    # used for observing overfitting and stability of the generator
     supervised_g_losses = []
     data_loader.reset_pointer()
 
     for it in xrange(data_loader.num_batch):
         batch = data_loader.next_batch()
+        # note the newly implementated method call for the model
+        # calculate_nll_loss_step calculate the node up to g_loss, but does not calculate the update node
         g_loss = trainable_model.calculate_nll_loss_step(sess, batch)
         supervised_g_losses.append(g_loss)
 
@@ -96,6 +104,12 @@ def calculate_train_loss_epoch(sess, trainable_model, data_loader):
 
 
 def calculate_bleu(sess, trainable_model, data_loader):
+    # bleu score implementationa
+    # used for performance evaluation for pre-training & adv. training
+    # separate true dataset to the valid set
+    # conditionally generate samples from the start token of the valid set
+    # measure similarity with nltk corpus BLEU
+
     data_loader.reset_pointer()
     bleu_avg = 0
 
@@ -124,16 +138,21 @@ def calculate_bleu(sess, trainable_model, data_loader):
 def main():
     random.seed(SEED)
     np.random.seed(SEED)
-    # assert START_TOKEN == 0
-
+    # data loaders declaration
+    # loaders for generator, discriminator, and additional validation data loader
     gen_data_loader = Gen_Data_loader(BATCH_SIZE)
     dis_data_loader = Dis_dataloader(BATCH_SIZE)
     eval_data_loader = Gen_Data_loader(BATCH_SIZE)
 
+    # define generator and discriminator
+    # general structures are same with the original model
+    # learning rates for generator needs heavy tuning for general use
+    # l2 reg for D & G also affects performance
     generator = Generator(vocab_size, BATCH_SIZE, EMB_DIM, HIDDEN_DIM, SEQ_LENGTH, START_TOKEN)
     discriminator = Discriminator(sequence_length=SEQ_LENGTH, num_classes=2, vocab_size=vocab_size, embedding_size=dis_embedding_dim,
                                 filter_sizes=dis_filter_sizes, num_filters=dis_num_filters, l2_reg_lambda=dis_l2_reg_lambda)
 
+    # VRAM limitation for efficient deployment
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
@@ -146,19 +165,25 @@ def main():
     eval_data_loader.create_batches(valid_file)
 
     log = open('save/experiment-log.txt', 'w')
-    """
+
     #  pre-train generator
     print 'Start pre-training...'
     log.write('pre-training...\n')
     for epoch in xrange(PRE_GEN_EPOCH):
+        # calculate the loss by running an epoch
         loss = pre_train_epoch(sess, generator, gen_data_loader)
+
+        # measure bleu score with the validation set
         bleu_score = calculate_bleu(sess, generator, eval_data_loader)
         # since the real data is the true data distribution, only evaluate the pretraining loss
-
+        # note the absence of the oracle model which is meaningless for general use
         buffer = 'pre-train epoch: ' + str(epoch) + ' pretrain_loss: ' + str(loss) + ' bleu: ' + str(bleu_score)
         print(buffer)
         log.write(buffer)
 
+        # generate 5 test samples per epoch
+        # it automatically samples from the generator and postprocess to midi file
+        # midi files are saved to the pre-defined folder
         if epoch == 0:
             generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
             POST.main(negative_file, 5, -1)
@@ -169,6 +194,7 @@ def main():
 
     print 'Start pre-training discriminator...'
     # Train 3 epoch on the generated data and do this for 50 times
+    # this trick is also in spirit of the original work, but the epoch strategy needs tuning
     for epochs in range(PRE_DIS_EPOCH):
         generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
         dis_data_loader.load_train_data(positive_file, negative_file)
@@ -188,13 +214,21 @@ def main():
         print(buffer)
         log.write(buffer)
 
+    # save the pre-trained checkpoint for future use
+    # if one wants adv. training only, comment out the pre-training section after the save
     save_checkpoint(sess, saver,PRE_GEN_EPOCH, PRE_DIS_EPOCH)
-    """
 
+    # define rollout target object
+    # the second parameter specifies target update rate
+    # the higher rate makes rollout "conservative", with less update from the learned generator
+    # we found that higher update rate stabilized learning, constraining divergence of the generator
     rollout = ROLLOUT(generator, 0.9)
+
     print '#########################################################################'
     print 'Start Adversarial Training...'
     log.write('adversarial training...\n')
+
+    # load checkpoint of pre-trained model
     load_checkpoint(sess, saver)
     for total_batch in range(TOTAL_BATCH):
         G_loss = 0
@@ -226,16 +260,22 @@ def main():
                     }
                     _ = sess.run(discriminator.train_op, feed)
                     D_loss += discriminator.loss.eval(feed, session=sess)
+
+        # measure stability and performance evaluation with bleu score
         buffer = 'epoch: ' + str(total_batch+1) + \
                  ',  G_adv_loss: %.12f' % (G_loss/epochs_generator) + \
                  ',  D loss: %.12f' % (D_loss/epochs_discriminator/3) + \
                  ',  bleu score: %.12f' % calculate_bleu(sess, generator, eval_data_loader)
         print(buffer)
         log.write(buffer)
+
+        # generate random test samples and postprocess the sequence to midi file
         generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file + "_EP_" + str(total_batch))
         POST.main(negative_file + "_EP_" + str(total_batch), 5, total_batch)
     log.close()
 
+
+# methods for loading and saving checkpoints of the model
 def load_checkpoint(sess, saver):
     ckpt = tf.train.get_checkpoint_state('save')
     if ckpt and ckpt.model_checkpoint_path:
