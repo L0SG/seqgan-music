@@ -79,17 +79,12 @@ def main(DATA, num_sample, epoch):
 
     for sample in xrange(num_sample):
         # select random sample of sequence
-        seq_idx = randint(0,len(seq))
+        seq_idx = randint(0,len(seq)-1)
         data = seq[seq_idx]
         # assumption : data is one sequence list, len(seq)=100, element of seq is integer
 
-        #real_data = [209,191,502,117,503,7,492,9,152,5,438,278,331,39,35,508,140,509,9,106]
-        #data = [39, 652, 80, 747, 61, 36, 3285, 2495, 136, 117, 208, 4, 251, 38, 4, 40, 38, 4, 76, 4]
-
         sequence = inverse_mapping(data)
         melody, chords = split(sequence)
-
-
 
         all_parts = stream.Stream()
 
@@ -120,9 +115,7 @@ def main(DATA, num_sample, epoch):
 
 
         all_parts.append([part_melody, part_chord])
-	fp = all_parts.write('midi', './midi_r128_u0.9_glr1e4/Ep_' + str(epoch) + '_test_' + str(sample) +'.mid')
-        #fp = all_parts.write('midi', './midi/test_' + str(sample) +'.mid')
-        #print('file name:',fp)
+	fp = all_parts.write('midi', './midi/Ep_' + str(epoch) + '_test_' + str(sample) +'.mid')
 
 
 if __name__ == "__main__":
