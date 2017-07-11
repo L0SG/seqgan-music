@@ -8,11 +8,11 @@ HIDDEN_DIM : 200 # hidden state dimension of lstm cell
 SEQ_LENGTH : 100 # sequence length
 START_TOKEN : 0
 
-PRE_GEN_EPOCH : 50 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
-PRE_DIS_EPOCH : 50 # supervise (maximum likelihood estimation) epochs for discriminator (default: 50)
+PRE_GEN_EPOCH : 200 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
+PRE_DIS_EPOCH : 100 # supervise (maximum likelihood estimation) epochs for discriminator (default: 50)
 SEED : 88
 BATCH_SIZE : 64
-
+generator_lr : 0.000001
 #########################################################################################
 #  Discriminator  Hyper-parameters
 #########################################################################################
@@ -22,7 +22,7 @@ dis_num_filters : [400, 400, 400, 400, 400, 400, 400, 400, 400, 400]
 dis_dropout_keep_prob : 0.7
 dis_l2_reg_lambda : 0.01
 dis_batch_size : 64
-
+rollout_num : 128
 #########################################################################################
 #  Basic Training Parameters
 #########################################################################################
@@ -38,3 +38,5 @@ generated_num : 3500
 
 epochs_generator : 1
 epochs_discriminator : 5
+
+pretrain : False

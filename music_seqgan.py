@@ -1,4 +1,6 @@
 import numpy as np
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 import random
 from dataloader import Gen_Data_loader, Dis_dataloader
@@ -6,7 +8,6 @@ from generator import Generator
 from discriminator import Discriminator
 from rollout import ROLLOUT
 import cPickle
-import os
 from nltk.translate.bleu_score import corpus_bleu
 import yaml
 import shutil
@@ -86,7 +87,7 @@ def pre_train_epoch(sess, trainable_model, data_loader):
     return np.mean(supervised_g_losses)
 
 # new implementations
-def calculate_train_loss_epoch(sess, trainable_model, data_loader):
+def calculate_train_loss_epoch(sess, trainableav_model, data_loader):
     # calculate the train loss for the generator
     # same for pre_train_epoch, but without the supervised grad update
     # used for observing overfitting and stability of the generator
@@ -153,9 +154,9 @@ def main():
                                 filter_sizes=dis_filter_sizes, num_filters=dis_num_filters, l2_reg_lambda=dis_l2_reg_lambda)
 
     # VRAM limitation for efficient deployment
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    sess = tf.Session(config=config)
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
+    sess = tf.Session(config=tf_config)
     sess.run(tf.global_variables_initializer())
     # define saver
     saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=1)
@@ -165,58 +166,58 @@ def main():
     eval_data_loader.create_batches(valid_file)
 
     log = open('save/experiment-log.txt', 'w')
+    if config['pretrain'] == True:
+        #  pre-train generator
+        print 'Start pre-training...'
+        log.write('pre-training...\n')
+        for epoch in xrange(PRE_GEN_EPOCH):
+            # calculate the loss by running an epoch
+            loss = pre_train_epoch(sess, generator, gen_data_loader)
 
-    #  pre-train generator
-    print 'Start pre-training...'
-    log.write('pre-training...\n')
-    for epoch in xrange(PRE_GEN_EPOCH):
-        # calculate the loss by running an epoch
-        loss = pre_train_epoch(sess, generator, gen_data_loader)
+            # measure bleu score with the validation set
+            bleu_score = calculate_bleu(sess, generator, eval_data_loader)
+            # since the real data is the true data distribution, only evaluate the pretraining loss
+            # note the absence of the oracle model which is meaningless for general use
+            buffer = 'pre-train epoch: ' + str(epoch) + ' pretrain_loss: ' + str(loss) + ' bleu: ' + str(bleu_score)
+            print(buffer)
+            log.write(buffer)
 
-        # measure bleu score with the validation set
-        bleu_score = calculate_bleu(sess, generator, eval_data_loader)
-        # since the real data is the true data distribution, only evaluate the pretraining loss
-        # note the absence of the oracle model which is meaningless for general use
-        buffer = 'pre-train epoch: ' + str(epoch) + ' pretrain_loss: ' + str(loss) + ' bleu: ' + str(bleu_score)
-        print(buffer)
-        log.write(buffer)
+            # generate 5 test samples per epoch
+            # it automatically samples from the generator and postprocess to midi file
+            # midi files are saved to the pre-defined folder
+            if epoch == 0:
+                generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
+                POST.main(negative_file, 5, -1)
+            elif epoch == PRE_GEN_EPOCH - 1:
+                generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
+                POST.main(negative_file, 5, -PRE_GEN_EPOCH)
 
-        # generate 5 test samples per epoch
-        # it automatically samples from the generator and postprocess to midi file
-        # midi files are saved to the pre-defined folder
-        if epoch == 0:
+
+        print 'Start pre-training discriminator...'
+        # Train 3 epoch on the generated data and do this for 50 times
+        # this trick is also in spirit of the original work, but the epoch strategy needs tuning
+        for epochs in range(PRE_DIS_EPOCH):
             generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-            POST.main(negative_file, 5, -1)
-        elif epoch == PRE_GEN_EPOCH - 1:
-            generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-            POST.main(negative_file, 5, -PRE_GEN_EPOCH)
+            dis_data_loader.load_train_data(positive_file, negative_file)
+            D_loss = 0
+            for _ in range(3):
+                dis_data_loader.reset_pointer()
+                for it in xrange(dis_data_loader.num_batch):
+                    x_batch, y_batch = dis_data_loader.next_batch()
+                    feed = {
+                        discriminator.input_x: x_batch,
+                        discriminator.input_y: y_batch,
+                        discriminator.dropout_keep_prob: dis_dropout_keep_prob
+                    }
+                    _ = sess.run(discriminator.train_op, feed)
+                    D_loss += discriminator.loss.eval(feed, session=sess)
+            buffer = 'epoch: ' + str(epochs+1) + '  D loss: ' + str(D_loss/dis_data_loader.num_batch/3)
+            print(buffer)
+            log.write(buffer)
 
-
-    print 'Start pre-training discriminator...'
-    # Train 3 epoch on the generated data and do this for 50 times
-    # this trick is also in spirit of the original work, but the epoch strategy needs tuning
-    for epochs in range(PRE_DIS_EPOCH):
-        generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-        dis_data_loader.load_train_data(positive_file, negative_file)
-        D_loss = 0
-        for _ in range(3):
-            dis_data_loader.reset_pointer()
-            for it in xrange(dis_data_loader.num_batch):
-                x_batch, y_batch = dis_data_loader.next_batch()
-                feed = {
-                    discriminator.input_x: x_batch,
-                    discriminator.input_y: y_batch,
-                    discriminator.dropout_keep_prob: dis_dropout_keep_prob
-                }
-                _ = sess.run(discriminator.train_op, feed)
-                D_loss += discriminator.loss.eval(feed, session=sess)
-        buffer = 'epoch: ' + str(epochs+1) + '  D loss: ' + str(D_loss/dis_data_loader.num_batch/3)
-        print(buffer)
-        log.write(buffer)
-
-    # save the pre-trained checkpoint for future use
-    # if one wants adv. training only, comment out the pre-training section after the save
-    save_checkpoint(sess, saver,PRE_GEN_EPOCH, PRE_DIS_EPOCH)
+        # save the pre-trained checkpoint for future use
+        # if one wants adv. training only, comment out the pre-training section after the save
+        save_checkpoint(sess, saver,PRE_GEN_EPOCH, PRE_DIS_EPOCH)
 
     # define rollout target object
     # the second parameter specifies target update rate
@@ -227,15 +228,15 @@ def main():
     print '#########################################################################'
     print 'Start Adversarial Training...'
     log.write('adversarial training...\n')
-
-    # load checkpoint of pre-trained model
-    load_checkpoint(sess, saver)
+    if config['pretrain'] == False:
+        # load checkpoint of pre-trained model
+        load_checkpoint(sess, saver)
     for total_batch in range(TOTAL_BATCH):
         G_loss = 0
         # Train the generator for one step
         for it in range(epochs_generator):
             samples = generator.generate(sess)
-            rewards = rollout.get_reward(sess, samples, 32, discriminator)
+            rewards = rollout.get_reward(sess, samples, config['rollout_num'], discriminator)
             feed = {generator.x: samples, generator.rewards: rewards}
             _ = sess.run(generator.g_updates, feed_dict=feed)
             G_loss += generator.g_loss.eval(feed, session=sess)
@@ -277,10 +278,12 @@ def main():
 
 # methods for loading and saving checkpoints of the model
 def load_checkpoint(sess, saver):
-    ckpt = tf.train.get_checkpoint_state('save')
-    if ckpt and ckpt.model_checkpoint_path:
-        saver.restore(sess, tf.train.latest_checkpoint('save'))
-        print('checkpoint loaded')
+    #ckpt = tf.train.get_checkpoint_state('save')
+    #if ckpt and ckpt.model_checkpoint_path:
+    #saver.restore(sess, tf.train.latest_checkpoint('save'))
+    ckpt = 'pretrain_g'+str(config['PRE_GEN_EPOCH'])+'_d'+str(config['PRE_DIS_EPOCH'])+'.ckpt'
+    saver.restore(sess, './save/' + ckpt)
+    print 'checkpoint {} loaded'.format(ckpt)
     return
 
 
