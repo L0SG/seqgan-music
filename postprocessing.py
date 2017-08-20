@@ -63,7 +63,7 @@ def convert_pitch(token):
     octave = octaves_ref[octave_ind]
     key = chords_ref[key_ind]
     # check the number of key in chord is same in octave
-    assert len(octave) == len(key)
+    #assert len(octave) == len(key)
     # convert
     # convert octave and key to pitch string
     p = []
