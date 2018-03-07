@@ -38,7 +38,6 @@ def linear(input_, output_size, scope=None):
 
     return tf.matmul(input_, tf.transpose(matrix)) + bias_term
 
-
 def highway(input_, size, num_layers=1, bias=-2.0, f=tf.nn.relu, scope='Highway'):
     """Highway Network (cf. http://arxiv.org/abs/1505.00387).
     t = sigmoid(Wy + b)
@@ -57,7 +56,6 @@ def highway(input_, size, num_layers=1, bias=-2.0, f=tf.nn.relu, scope='Highway'
 
     return output
 
-
 class Discriminator(object):
     """
     A CNN for text classification.
@@ -68,14 +66,21 @@ class Discriminator(object):
             self, sequence_length, num_classes, vocab_size,
             embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0):
         # Placeholders for input, output and dropout
-        self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="input_x")
-        self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="input_y")
+        self.input_x_real = tf.placeholder(tf.int32, [None, sequence_length], name="input_x_real")
+        self.input_y_real = tf.placeholder(tf.float32, [None, num_classes], name="input_y_real")
+        self.input_x_fake = tf.placeholder(tf.int32, [None, sequence_length], name="input_x_fake")
+        self.input_y_fake = tf.placeholder(tf.float32, [None, num_classes], name="input_y_fake")
         self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
+
+        # concatenate real and fake inputs
+        self.input_x = tf.concat([self.input_x_real, self.input_x_fake], axis=0)
+        self.input_y = tf.concat([self.input_y_real, self.input_y_fake], axis=0)
 
         # Keeping track of l2 regularization loss (optional)
         l2_loss = tf.constant(0.0)
-
+        
         with tf.variable_scope('discriminator'):
+
             # Embedding layer
             with tf.device('/cpu:0'), tf.name_scope("embedding"):
                 self.W = tf.Variable(
@@ -91,7 +96,7 @@ class Discriminator(object):
                     # Convolution Layer
                     filter_shape = [filter_size, embedding_size, 1, num_filter]
                     W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1), name="W")
-                    b = tf.Variable(tf.constant(0.1, shape=[num_filter]), name="b")
+                    b = tf.Variable(tf.constant(0., shape=[num_filter]), name="b")
                     conv = tf.nn.conv2d(
                         self.embedded_chars_expanded,
                         W,
@@ -108,7 +113,7 @@ class Discriminator(object):
                         padding='VALID',
                         name="pool")
                     pooled_outputs.append(pooled)
-
+            
             # Combine all the pooled features
             num_filters_total = sum(num_filters)
             self.h_pool = tf.concat(pooled_outputs, 3)
@@ -125,21 +130,27 @@ class Discriminator(object):
             # Final (unnormalized) scores and predictions
             with tf.name_scope("output"):
                 W = tf.Variable(tf.truncated_normal([num_filters_total, num_classes], stddev=0.1), name="W")
-                b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
+                b = tf.Variable(tf.constant(0., shape=[num_classes]), name="b")
                 l2_loss += tf.nn.l2_loss(W)
                 l2_loss += tf.nn.l2_loss(b)
                 self.scores = tf.nn.xw_plus_b(self.h_drop, W, b, name="scores")
-                self.ypred_for_auc = tf.nn.softmax(self.scores)
-                self.predictions = tf.argmax(self.scores, 1, name="predictions")
+                self.ypred_for_auc = tf.nn.sigmoid(self.scores)
 
+                self.losses = tf.losses.mean_squared_error(self.input_y, self.scores)
+
+                #self.wasserstein_loss = -(tf.reduce_mean(self.scores_real) - tf.reduce_mean(self.scores_fake))
+
+
+                #self.ypred_for_auc = tf.nn.softmax(self.scores)
+                #self.predictions = tf.argmax(self.scores, 1, name="predictions")
+                #self.predictions = tf.cast(tf.round(self.scores, name="predictions"), dtype=tf.int64)
             # CalculateMean cross-entropy loss
-            with tf.name_scope("loss"):
-                losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.scores, labels=self.input_y)
-                self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
+            #with tf.name_scope("loss"):
+                #losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.scores, labels=self.input_y)
+                #self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
 
         self.params = [param for param in tf.trainable_variables() if 'discriminator' in param.name]
-        # adam optimzier for discriminator
-        # may want to use SGD for stable learning of D
         d_optimizer = tf.train.AdamOptimizer(config['discriminator_lr'])
-        grads_and_vars = d_optimizer.compute_gradients(self.loss, self.params, aggregation_method=2)
+        grads_and_vars = d_optimizer.compute_gradients(self.losses, self.params, aggregation_method=2)
         self.train_op = d_optimizer.apply_gradients(grads_and_vars)
+        #self.clip_d = [param.assign(tf.clip_by_value(param, -0.01, 0.01)) for param in self.params if not 'embedding' in param.name]

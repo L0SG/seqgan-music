@@ -3,10 +3,10 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 import random
-from dataloader import Gen_Data_loader, Dis_dataloader
-from generator import Generator
-from discriminator import Discriminator
-from rollout import ROLLOUT
+from dataloader import Gen_Data_loader, Dis_realdataloader, Dis_fakedataloader
+from generator_ls import Generator
+from discriminator_ls import Discriminator
+from rollout_ls import ROLLOUT
 import cPickle
 from nltk.translate.bleu_score import sentence_bleu
 import yaml
@@ -158,7 +158,8 @@ def main():
     # data loaders declaration
     # loaders for generator, discriminator, and additional validation data loader
     gen_data_loader = Gen_Data_loader(BATCH_SIZE)
-    dis_data_loader = Dis_dataloader(BATCH_SIZE)
+    dis_realdata_loader = Dis_realdataloader(BATCH_SIZE)
+    dis_fakedata_loader = Dis_fakedataloader(BATCH_SIZE)
     eval_data_loader = Gen_Data_loader(BATCH_SIZE)
 
     # define generator and discriminator
@@ -166,7 +167,7 @@ def main():
     # learning rates for generator needs heavy tuning for general use
     # l2 reg for D & G also affects performance
     generator = Generator(vocab_size, BATCH_SIZE, EMB_DIM, HIDDEN_DIM, SEQ_LENGTH, START_TOKEN)
-    discriminator = Discriminator(sequence_length=SEQ_LENGTH, num_classes=2, vocab_size=vocab_size, embedding_size=dis_embedding_dim,
+    discriminator = Discriminator(sequence_length=SEQ_LENGTH, num_classes=1, vocab_size=vocab_size, embedding_size=dis_embedding_dim,
                                 filter_sizes=dis_filter_sizes, num_filters=dis_num_filters, l2_reg_lambda=dis_l2_reg_lambda)
 
     # VRAM limitation for efficient deployment
@@ -174,6 +175,7 @@ def main():
     tf_config.gpu_options.allow_growth = True
     sess = tf.Session(config=tf_config)
     sess.run(tf.global_variables_initializer())
+
     # define saver
     saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=1)
     # generate real data from the true dataset
@@ -195,6 +197,12 @@ def main():
         for epoch in xrange(PRE_GEN_EPOCH):
             # calculate the loss by running an epoch
             loss = pre_train_epoch(sess, generator, gen_data_loader)
+
+            # for tensorboard plot
+            # tf.summary.scalar("pretrain_loss_G", loss)
+            # merged_summary_op = tf.summary.merge_all()
+            # summary = sess.run(merged_summary_op)
+            # summary_writer.add_summary(summary, epoch)
 
             # measure bleu score with the validation set
             bleu_score = calculate_bleu(sess, generator, eval_data_loader)
@@ -223,21 +231,39 @@ def main():
             generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
             D_loss = 0
             for _ in range(3):
-                dis_data_loader.load_train_data(positive_file, negative_file)
-                dis_data_loader.reset_pointer()
-                for it in xrange(dis_data_loader.num_batch):
-                    x_batch, y_batch = dis_data_loader.next_batch()
+
+                dis_realdata_loader.load_train_data(positive_file)
+                dis_realdata_loader.reset_pointer()
+                dis_fakedata_loader.load_train_data(negative_file)
+                dis_fakedata_loader.reset_pointer()
+                assert dis_realdata_loader.num_batch == dis_fakedata_loader.num_batch
+
+                for it in xrange(dis_realdata_loader.num_batch):
+                    x_realbatch, y_realbatch = dis_realdata_loader.next_batch()
+                    x_fakebatch, y_fakebatch = dis_fakedata_loader.next_batch()
+                    # real label: [0, 1], fake label: [1, 0]
+                    # take only label for real (1 for real, 0 for fake)
                     feed = {
-                        discriminator.input_x: x_batch,
-                        discriminator.input_y: y_batch,
+                        discriminator.input_x_real: x_realbatch,
+                        discriminator.input_y_real: np.expand_dims(y_realbatch[:, 1], 1),
+                        discriminator.input_x_fake: x_fakebatch,
+                        discriminator.input_y_fake: np.expand_dims(y_fakebatch[:, 1], 1),
                         discriminator.dropout_keep_prob: dis_dropout_keep_prob
                     }
-                    _ = sess.run(discriminator.train_op, feed)
-                    D_loss += discriminator.loss.eval(feed, session=sess)
-            buffer = 'epoch: ' + str(epochs+1) + '  D loss: ' + str(D_loss/dis_data_loader.num_batch/3)
+                    #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
+                    _= sess.run([discriminator.train_op], feed)
+                    D_loss += discriminator.losses.eval(feed, session=sess)
+            D_loss = D_loss/dis_realdata_loader.num_batch/3
+            buffer = 'epoch: ' + str(epochs+1) + '  D loss: ' + str(D_loss)
             print(buffer)
             log.write(buffer + '\n')
             log.flush()
+
+            # for tensorboard plot
+            # tf.summary.scalar("pretrain_loss_D", D_loss)
+            # merged_summary_op = tf.summary.merge_all()
+            # summary = sess.run(merged_summary_op)
+            # summary_writer.add_summary(summary, epoch)
 
         # save the pre-trained checkpoint for future use
         # if one wants adv. training only, comment out the pre-training section after the save

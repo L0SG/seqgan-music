@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.python.ops import tensor_array_ops, control_flow_ops
 import yaml
+from tensorflow.python import debug as tf_debug
 
 with open("SeqGAN.yaml") as stream:
     try:
@@ -140,6 +141,8 @@ class Generator(object):
         return outputs
 
     def pretrain_step(self, sess, x):
+        # for debug
+        #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
         outputs = sess.run([self.pretrain_updates, self.pretrain_loss], feed_dict={self.x: x})
         return outputs
 
