@@ -136,9 +136,8 @@ class Discriminator(object):
                 self.scores = tf.nn.xw_plus_b(self.h_drop, W, b, name="scores")
                 self.ypred_for_auc = tf.nn.sigmoid(self.scores)
 
-                self.losses = tf.losses.mean_squared_error(self.input_y, self.scores)
+                self.losses = tf.losses.mean_squared_error(self.input_y, self.scores) + l2_reg_lambda * l2_loss
 
-                #self.wasserstein_loss = -(tf.reduce_mean(self.scores_real) - tf.reduce_mean(self.scores_fake))
 
 
                 #self.ypred_for_auc = tf.nn.softmax(self.scores)

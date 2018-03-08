@@ -1,11 +1,11 @@
-GPU : '1' # if you have 2 GPU, use '0' or '1'
+GPU : '0' # if you have 2 GPU, use '0' or '1'
 
 #########################################################################################
 #  Generator  Hyper-parameters
 ######################################################################################
 EMB_DIM : 64 # embedding dimension
 HIDDEN_DIM : 200 # hidden state dimension of lstm cell
-SEQ_LENGTH : 100 # sequence length
+SEQ_LENGTH : 20 # sequence length
 START_TOKEN : 0
 
 PRE_GEN_EPOCH : 200 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
@@ -33,9 +33,12 @@ vocab_size : 3216
 # positive data, containing real music sequences
 positive_file : 'dataset/train'
 # negative data from the generator, containing fake sequences
-negative_file : 'dataset/generated'
+# specify different name if experimenting with multiple instances: causes EOF error & writing to same file from different instances
+negative_file : 'dataset/generated0'
 valid_file : 'dataset/valid'
-generated_num : 1400
+# # of real data tokens is 140000
+# specify so that generated_num * seq_length = 140000 to match balanced real & fake data
+generated_num : 7000
 
 epochs_generator : 1
 epochs_discriminator : 5

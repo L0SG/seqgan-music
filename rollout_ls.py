@@ -132,8 +132,8 @@ class ROLLOUT(object):
                 # run prediction by discriminator with feed
                 ypred_for_auc = sess.run(discriminator.ypred_for_auc, feed)
 
-                ypred = np.array([item[1] for item in ypred_for_auc])
-                #ypred = np.array([item] for item in ypred_for_auc)
+                #ypred = np.array([item[1] for item in ypred_for_auc])
+                ypred = np.array([item] for item in ypred_for_auc)
 
                 # add rewards for each given_num
                 if i == 0:  # initial rollout
@@ -144,11 +144,14 @@ class ROLLOUT(object):
             # the last token reward
             feed = {discriminator.input_x: input_x, discriminator.dropout_keep_prob: 1.0}
             ypred_for_auc = sess.run(discriminator.ypred_for_auc, feed)
-            ypred = np.array([item[1] for item in ypred_for_auc])
+            # since we changed num_classes from 2 to 1, take item, not item[1] (score for real)
+            # ypred = np.array([item[1] for item in ypred_for_auc])
+            ypred = np.array([item] for item in ypred_for_auc)
+
             if i == 0:
                 rewards.append(ypred)
             else:
-                rewards[19] += ypred
+                rewards[config['SEQ_LENGTH']-1] += ypred
         # average out the rewards, with shape [batch_size, seq_length]
         rewards = np.transpose(np.array(rewards)) / (1.0 * rollout_num)
         return rewards

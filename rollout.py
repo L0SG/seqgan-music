@@ -145,7 +145,7 @@ class ROLLOUT(object):
             if i == 0:
                 rewards.append(ypred)
             else:
-                rewards[19] += ypred
+                rewards[config['SEQ_LENGTH']-1] += ypred
         # average out the rewards, with shape [batch_size, seq_length]
         rewards = np.transpose(np.array(rewards)) / (1.0 * rollout_num)
         return rewards
