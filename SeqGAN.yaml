@@ -1,10 +1,10 @@
-GPU : '0' # if you have 2 GPU, use '0' or '1'
+GPU : '1' # if you have 2 GPU, use '0' or '1'
 
 #########################################################################################
 #  Generator  Hyper-parameters
 ######################################################################################
 EMB_DIM : 64 # embedding dimension
-HIDDEN_DIM : 200 # hidden state dimension of lstm cell
+HIDDEN_DIM : 512 # hidden state dimension of lstm cell
 SEQ_LENGTH : 20 # sequence length
 START_TOKEN : 0
 
@@ -34,7 +34,7 @@ vocab_size : 3216
 positive_file : 'dataset/train'
 # negative data from the generator, containing fake sequences
 # specify different name if experimenting with multiple instances: causes EOF error & writing to same file from different instances
-negative_file : 'dataset/generated0'
+negative_file : 'dataset/generated1'
 valid_file : 'dataset/valid'
 # # of real data tokens is 140000
 # specify so that generated_num * seq_length = 140000 to match balanced real & fake data

@@ -8,12 +8,13 @@ from generator import Generator
 from discriminator import Discriminator
 from rollout import ROLLOUT
 import cPickle
-from nltk.translate.bleu_score import sentence_bleu
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 import yaml
 import shutil
 import postprocessing as POST
 import datetime
 from tensorflow.python import debug as tf_debug
+from pathos.multiprocessing import ProcessingPool as Pool
 
 with open("SeqGAN.yaml") as stream:
     try:
@@ -112,6 +113,7 @@ def calculate_bleu(sess, trainable_model, data_loader):
     # separate true dataset to the valid set
     # conditionally generate samples from the start token of the valid set
     # measure similarity with nltk corpus BLEU
+    smoother = SmoothingFunction()
 
     data_loader.reset_pointer()
     bleu_avg = 0
@@ -138,9 +140,18 @@ def calculate_bleu(sess, trainable_model, data_loader):
     bleu = 0.
     # calculate bleu for each predicted seq
     # compare each predicted seq with the entire references
-    for i in range(len(hypotheses)):
-        bleu += sentence_bleu(references, hypotheses[i])
-    bleu = bleu / len(hypotheses)
+    # this is slow, use multiprocess
+    def calc_sentence_bleu(hypothesis):
+        return sentence_bleu(references, hypothesis, smoothing_function=smoother.method4)
+    if __name__ == '__main__':
+        p = Pool()
+        result = (p.map(calc_sentence_bleu, hypotheses))
+    bleu = np.mean(result)
+
+
+    # for i in range(len(hypotheses)):
+    #     bleu += sentence_bleu(references, hypotheses[i])
+    # bleu = bleu / len(hypotheses)
 
     #     bleu = 0
     #     # calculate bleu for each sequence
@@ -196,8 +207,11 @@ def main():
             # calculate the loss by running an epoch
             loss = pre_train_epoch(sess, generator, gen_data_loader)
 
-            # measure bleu score with the validation set
-            bleu_score = calculate_bleu(sess, generator, eval_data_loader)
+            if epoch % 10 == 0:
+                # measure bleu score with the validation set
+                bleu_score = calculate_bleu(sess, generator, eval_data_loader)
+            else:
+                bleu_score = ''
             # since the real data is the true data distribution, only evaluate the pretraining loss
             # note the absence of the oracle model which is meaningless for general use
             buffer = 'pre-train epoch: ' + str(epoch) + ' pretrain_loss: ' + str(loss) + ' bleu: ' + str(bleu_score)
