@@ -34,7 +34,7 @@ PRE_GEN_EPOCH = config['PRE_GEN_EPOCH'] # supervise (maximum likelihood estimati
 PRE_DIS_EPOCH = config['PRE_DIS_EPOCH'] # supervise (maximum likelihood estimation) epochs for discriminator
 SEED = config['SEED']
 BATCH_SIZE = config['BATCH_SIZE']
-
+ROLLOUT_UPDATE_RATE = config['ROLLOUT_UPDATE_RATE']
 #########################################################################################
 #  Discriminator  Hyper-parameters
 #########################################################################################
@@ -148,19 +148,6 @@ def calculate_bleu(sess, trainable_model, data_loader):
         result = (p.map(calc_sentence_bleu, hypotheses))
     bleu = np.mean(result)
 
-
-    # for i in range(len(hypotheses)):
-    #     bleu += sentence_bleu(references, hypotheses[i])
-    # bleu = bleu / len(hypotheses)
-
-    #     bleu = 0
-    #     # calculate bleu for each sequence
-    #     for i in range(len(batch_list)):
-    #         bleu += corpus_bleu(batch_list[i], pred_list[i])
-    #     bleu = bleu / len(batch_list)
-    #     bleu_avg += bleu
-    # bleu_avg = bleu_avg / data_loader.num_batch
-
     return bleu
 
 def main():
@@ -195,6 +182,7 @@ def main():
     time = str(datetime.datetime.now())[:-7]
     log = open('save/experiment-log-' + str(time) + '.txt', 'w')
     log.write(str(config)+'\n')
+    log.write('D loss: original\n')
     log.flush()
 
     #summary_writer = tf.summary.FileWriter('save/tensorboard/', graph=tf.get_default_graph())
@@ -207,11 +195,9 @@ def main():
             # calculate the loss by running an epoch
             loss = pre_train_epoch(sess, generator, gen_data_loader)
 
-            if epoch % 10 == 0:
-                # measure bleu score with the validation set
-                bleu_score = calculate_bleu(sess, generator, eval_data_loader)
-            else:
-                bleu_score = ''
+            # measure bleu score with the validation set
+            bleu_score = calculate_bleu(sess, generator, eval_data_loader)
+
             # since the real data is the true data distribution, only evaluate the pretraining loss
             # note the absence of the oracle model which is meaningless for general use
             buffer = 'pre-train epoch: ' + str(epoch) + ' pretrain_loss: ' + str(loss) + ' bleu: ' + str(bleu_score)
@@ -261,7 +247,7 @@ def main():
     # the second parameter specifies target update rate
     # the higher rate makes rollout "conservative", with less update from the learned generator
     # we found that higher update rate stabilized learning, constraining divergence of the generator
-    rollout = ROLLOUT(generator, 0.9)
+    rollout = ROLLOUT(generator, ROLLOUT_UPDATE_RATE)
 
     print '#########################################################################'
     print 'Start Adversarial Training...'
@@ -310,8 +296,8 @@ def main():
         log.flush()
 
         # generate random test samples and postprocess the sequence to midi file
-        generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file + "_EP_" + str(total_batch))
-        POST.main(negative_file + "_EP_" + str(total_batch), 5, total_batch)
+        generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
+        POST.main(negative_file, 5, total_batch)
     log.close()
 
 

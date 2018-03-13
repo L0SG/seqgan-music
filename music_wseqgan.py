@@ -8,12 +8,13 @@ from generator_ls import Generator
 from discriminator_ls import Discriminator
 from rollout_ls import ROLLOUT
 import cPickle
-from nltk.translate.bleu_score import sentence_bleu
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 import yaml
 import shutil
 import postprocessing as POST
 import datetime
 from tensorflow.python import debug as tf_debug
+from pathos.multiprocessing import ProcessingPool as Pool
 
 with open("SeqGAN.yaml") as stream:
     try:
@@ -33,7 +34,7 @@ PRE_GEN_EPOCH = config['PRE_GEN_EPOCH'] # supervise (maximum likelihood estimati
 PRE_DIS_EPOCH = config['PRE_DIS_EPOCH'] # supervise (maximum likelihood estimation) epochs for discriminator
 SEED = config['SEED']
 BATCH_SIZE = config['BATCH_SIZE']
-
+ROLLOUT_UPDATE_RATE = config['ROLLOUT_UPDATE_RATE']
 #########################################################################################
 #  Discriminator  Hyper-parameters
 #########################################################################################
@@ -112,6 +113,7 @@ def calculate_bleu(sess, trainable_model, data_loader):
     # separate true dataset to the valid set
     # conditionally generate samples from the start token of the valid set
     # measure similarity with nltk corpus BLEU
+    smoother = SmoothingFunction()
 
     data_loader.reset_pointer()
     bleu_avg = 0
@@ -123,7 +125,7 @@ def calculate_bleu(sess, trainable_model, data_loader):
         batch = data_loader.next_batch()
         # predict from the batch
         # TODO: which start tokens?
-        #start_tokens = batch[:, 0]
+        # start_tokens = batch[:, 0]
         start_tokens = np.array([START_TOKEN] * BATCH_SIZE, dtype=np.int64)
         prediction = trainable_model.predict(sess, batch, start_tokens)
         # argmax to convert to vocab
@@ -136,19 +138,17 @@ def calculate_bleu(sess, trainable_model, data_loader):
         hypotheses.extend(pred_list)
 
     bleu = 0.
+
     # calculate bleu for each predicted seq
     # compare each predicted seq with the entire references
-    for i in range(len(hypotheses)):
-        bleu += sentence_bleu(references, hypotheses[i])
-    bleu = bleu / len(hypotheses)
+    # this is slow, use multiprocess
+    def calc_sentence_bleu(hypothesis):
+        return sentence_bleu(references, hypothesis, smoothing_function=smoother.method4)
 
-    #     bleu = 0
-    #     # calculate bleu for each sequence
-    #     for i in range(len(batch_list)):
-    #         bleu += corpus_bleu(batch_list[i], pred_list[i])
-    #     bleu = bleu / len(batch_list)
-    #     bleu_avg += bleu
-    # bleu_avg = bleu_avg / data_loader.num_batch
+    if __name__ == '__main__':
+        p = Pool()
+        result = (p.map(calc_sentence_bleu, hypotheses))
+    bleu = np.mean(result)
 
     return bleu
 
@@ -186,6 +186,7 @@ def main():
     time = str(datetime.datetime.now())[:-7]
     log = open('save/experiment-log-' + str(time) + '.txt', 'w')
     log.write(str(config)+'\n')
+    log.write('D loss: wgan\n')
     log.flush()
 
     #summary_writer = tf.summary.FileWriter('save/tensorboard/', graph=tf.get_default_graph())
@@ -274,7 +275,7 @@ def main():
     # the second parameter specifies target update rate
     # the higher rate makes rollout "conservative", with less update from the learned generator
     # we found that higher update rate stabilized learning, constraining divergence of the generator
-    rollout = ROLLOUT(generator, 0.9)
+    rollout = ROLLOUT(generator, ROLLOUT_UPDATE_RATE)
 
     print '#########################################################################'
     print 'Start Adversarial Training...'
@@ -323,8 +324,8 @@ def main():
         log.flush()
 
         # generate random test samples and postprocess the sequence to midi file
-        generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file + "_EP_" + str(total_batch))
-        POST.main(negative_file + "_EP_" + str(total_batch), 5, total_batch)
+        generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
+        POST.main(negative_file, 5, total_batch)
     log.close()
 
 

@@ -1,27 +1,28 @@
-GPU : '1' # if you have 2 GPU, use '0' or '1'
+GPU : '0' # if you have 2 GPU, use '0' or '1'
 
 #########################################################################################
 #  Generator  Hyper-parameters
 ######################################################################################
-EMB_DIM : 64 # embedding dimension
+EMB_DIM : 32 # embedding dimension
 HIDDEN_DIM : 512 # hidden state dimension of lstm cell
 SEQ_LENGTH : 20 # sequence length
 START_TOKEN : 0
 
-PRE_GEN_EPOCH : 200 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
-PRE_DIS_EPOCH : 100 # supervise (maximum likelihood estimation) epochs for discriminator (default: 50)
+PRE_GEN_EPOCH : 50 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
+PRE_DIS_EPOCH : 50 # supervise (maximum likelihood estimation) epochs for discriminator (default: 50)
 SEED : 88
-BATCH_SIZE : 64
+BATCH_SIZE : 32
 generator_lr : 0.0001
+ROLLOUT_UPDATE_RATE: 0.7
 #########################################################################################
 #  Discriminator  Hyper-parameters
 #########################################################################################
-dis_embedding_dim : 64
+dis_embedding_dim : 32
 dis_filter_sizes : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]
 dis_num_filters : [100, 200, 200, 200, 200, 100, 100, 100, 100, 100, 160, 160]
 dis_dropout_keep_prob : 0.75
 dis_l2_reg_lambda : 0.2
-dis_batch_size : 64
+dis_batch_size : 32
 rollout_num : 32
 discriminator_lr : 0.0001
 #########################################################################################
@@ -34,7 +35,7 @@ vocab_size : 3216
 positive_file : 'dataset/train'
 # negative data from the generator, containing fake sequences
 # specify different name if experimenting with multiple instances: causes EOF error & writing to same file from different instances
-negative_file : 'dataset/generated1'
+negative_file : 'dataset/generated0'
 valid_file : 'dataset/valid'
 # # of real data tokens is 140000
 # specify so that generated_num * seq_length = 140000 to match balanced real & fake data
