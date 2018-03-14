@@ -185,7 +185,7 @@ def main():
     eval_data_loader.create_batches(valid_file)
 
     time = str(datetime.datetime.now())[:-7]
-    log = open('save/experiment-log-' + str(time) + '.txt', 'w')
+    log = open('save/experiment-log-ls' + str(time) + '.txt', 'w')
     log.write(str(config)+'\n')
     log.write('D loss: lsgan\n')
     log.flush()

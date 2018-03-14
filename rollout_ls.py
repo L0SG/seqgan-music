@@ -133,7 +133,8 @@ class ROLLOUT(object):
                 ypred_for_auc = sess.run(discriminator.ypred_for_auc, feed)
 
                 #ypred = np.array([item[1] for item in ypred_for_auc])
-                ypred = np.array([item] for item in ypred_for_auc)
+                ypred = np.squeeze(np.array([item for item in ypred_for_auc]), 1)
+                #ypred = ypred_for_auc
 
                 # add rewards for each given_num
                 if i == 0:  # initial rollout
@@ -146,8 +147,8 @@ class ROLLOUT(object):
             ypred_for_auc = sess.run(discriminator.ypred_for_auc, feed)
             # since we changed num_classes from 2 to 1, take item, not item[1] (score for real)
             # ypred = np.array([item[1] for item in ypred_for_auc])
-            ypred = np.array([item] for item in ypred_for_auc)
-
+            ypred = np.squeeze(np.array([item for item in ypred_for_auc]), 1)
+            #ypred = ypred_for_auc
             if i == 0:
                 rewards.append(ypred)
             else:
