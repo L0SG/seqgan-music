@@ -254,7 +254,7 @@ def main():
                     }
                     #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
                     _= sess.run([discriminator.train_op], feed)
-                    D_loss += discriminator.losses.eval(feed, session=sess)
+                    D_loss += discriminator.loss.eval(feed, session=sess)
             D_loss = D_loss/dis_realdata_loader.num_batch/3
             buffer = 'epoch: ' + str(epochs+1) + '  D loss: ' + str(D_loss)
             print(buffer)
@@ -301,14 +301,22 @@ def main():
         for _ in range(epochs_discriminator):
             generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
             for _ in range(3):
-                dis_data_loader.load_train_data(positive_file, negative_file)
-                dis_data_loader.reset_pointer()
+                dis_realdata_loader.load_train_data(positive_file)
+                dis_realdata_loader.reset_pointer()
+                dis_fakedata_loader.load_train_data(negative_file)
+                dis_fakedata_loader.reset_pointer()
+                assert dis_realdata_loader.num_batch == dis_fakedata_loader.num_batch
 
-                for it in xrange(dis_data_loader.num_batch):
-                    x_batch, y_batch = dis_data_loader.next_batch()
+                for it in xrange(dis_realdata_loader.num_batch):
+                    x_realbatch, y_realbatch = dis_realdata_loader.next_batch()
+                    x_fakebatch, y_fakebatch = dis_fakedata_loader.next_batch()
+                    # real label: [0, 1], fake label: [1, 0]
+                    # take only label for real (1 for real, 0 for fake)
                     feed = {
-                        discriminator.input_x: x_batch,
-                        discriminator.input_y: y_batch,
+                        discriminator.input_x_real: x_realbatch,
+                        discriminator.input_y_real: np.expand_dims(y_realbatch[:, 1], 1),
+                        discriminator.input_x_fake: x_fakebatch,
+                        discriminator.input_y_fake: np.expand_dims(y_fakebatch[:, 1], 1),
                         discriminator.dropout_keep_prob: dis_dropout_keep_prob
                     }
                     _ = sess.run(discriminator.train_op, feed)

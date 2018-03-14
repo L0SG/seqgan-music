@@ -136,7 +136,7 @@ class Discriminator(object):
                 self.scores = tf.nn.xw_plus_b(self.h_drop, W, b, name="scores")
                 self.ypred_for_auc = tf.nn.sigmoid(self.scores)
 
-                self.losses = tf.losses.mean_squared_error(self.input_y, self.scores) + l2_reg_lambda * l2_loss
+                self.loss = tf.losses.mean_squared_error(self.input_y, self.scores) + l2_reg_lambda * l2_loss
 
 
 
@@ -150,6 +150,6 @@ class Discriminator(object):
 
         self.params = [param for param in tf.trainable_variables() if 'discriminator' in param.name]
         d_optimizer = tf.train.AdamOptimizer(config['discriminator_lr'])
-        grads_and_vars = d_optimizer.compute_gradients(self.losses, self.params, aggregation_method=2)
+        grads_and_vars = d_optimizer.compute_gradients(self.loss, self.params, aggregation_method=2)
         self.train_op = d_optimizer.apply_gradients(grads_and_vars)
         #self.clip_d = [param.assign(tf.clip_by_value(param, -0.01, 0.01)) for param in self.params if not 'embedding' in param.name]
