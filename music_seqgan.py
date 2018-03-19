@@ -210,10 +210,10 @@ def main():
             # midi files are saved to the pre-defined folder
             if epoch == 0:
                 generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-                POST.main(negative_file, 5, -1)
+                POST.main(negative_file, 5, str(-1)+'_vanilla_')
             elif epoch == PRE_GEN_EPOCH - 1:
                 generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-                POST.main(negative_file, 5, -PRE_GEN_EPOCH)
+                POST.main(negative_file, 5, str(-PRE_GEN_EPOCH)+'_vanilla_')
 
 
         print 'Start pre-training discriminator...'
@@ -297,7 +297,7 @@ def main():
 
         # generate random test samples and postprocess the sequence to midi file
         generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-        POST.main(negative_file, 5, total_batch)
+        POST.main(negative_file, 5, str(total_batch)+'_vanilla_')
     log.close()
 
 
