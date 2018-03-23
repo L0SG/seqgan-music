@@ -144,7 +144,7 @@ def calculate_bleu(sess, trainable_model, data_loader):
     def calc_sentence_bleu(hypothesis):
         return sentence_bleu(references, hypothesis, smoothing_function=smoother.method4)
     if __name__ == '__main__':
-        p = Pool()
+        p = Pool(processes=10)
         result = (p.map(calc_sentence_bleu, hypotheses))
     bleu = np.mean(result)
 
@@ -180,7 +180,7 @@ def main():
     eval_data_loader.create_batches(valid_file)
 
     time = str(datetime.datetime.now())[:-7]
-    log = open('save/experiment-log-' + str(time) + '.txt', 'w')
+    log = open('save/experiment-log' + str(time) + '.txt', 'w')
     log.write(str(config)+'\n')
     log.write('D loss: original\n')
     log.flush()

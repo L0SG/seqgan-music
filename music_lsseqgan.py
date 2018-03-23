@@ -146,7 +146,7 @@ def calculate_bleu(sess, trainable_model, data_loader):
         return sentence_bleu(references, hypothesis, smoothing_function=smoother.method4)
 
     if __name__ == '__main__':
-        p = Pool()
+        p = Pool(processes=10)
         result = (p.map(calc_sentence_bleu, hypotheses))
     bleu = np.mean(result)
 
@@ -243,6 +243,7 @@ def main():
                 for it in xrange(dis_realdata_loader.num_batch):
                     x_realbatch, y_realbatch = dis_realdata_loader.next_batch()
                     x_fakebatch, y_fakebatch = dis_fakedata_loader.next_batch()
+
                     # real label: [0, 1], fake label: [1, 0]
                     # take only label for real (1 for real, 0 for fake)
                     feed = {

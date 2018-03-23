@@ -127,8 +127,17 @@ class ROLLOUT(object):
                 feed = {self.x: input_x, self.given_num: given_num}
                 # run the gen_x op defined from __init__ with feed
                 samples = sess.run(self.gen_x, feed)
+
                 # define new feed for discrimination
-                feed = {discriminator.input_x: samples, discriminator.dropout_keep_prob: 1.0}
+                # hacky way for customized feed for lsgan D
+                # split the input_x to input_x_real and input_x_fake
+                # BOTH ARE ALL FAKE: just to match the formulation
+                input_x_real = input_x[:input_x.shape[0]/2]
+                input_x_fake = input_x[input_x.shape[0]/2:]
+                feed = {discriminator.input_x_real: input_x_real,
+                        discriminator.input_x_fake: input_x_fake,
+                        discriminator.dropout_keep_prob: 1.0}
+
                 # run prediction by discriminator with feed
                 ypred_for_auc = sess.run(discriminator.ypred_for_auc, feed)
 
@@ -143,7 +152,11 @@ class ROLLOUT(object):
                     rewards[given_num-1] += ypred
 
             # the last token reward
-            feed = {discriminator.input_x: input_x, discriminator.dropout_keep_prob: 1.0}
+            input_x_real = input_x[:input_x.shape[0] / 2]
+            input_x_fake = input_x[input_x.shape[0] / 2:]
+            feed = {discriminator.input_x_real: input_x_real,
+                    discriminator.input_x_fake: input_x_fake,
+                    discriminator.dropout_keep_prob: 1.0}
             ypred_for_auc = sess.run(discriminator.ypred_for_auc, feed)
             # since we changed num_classes from 2 to 1, take item, not item[1] (score for real)
             # ypred = np.array([item[1] for item in ypred_for_auc])

@@ -137,6 +137,7 @@ class Discriminator(object):
                 self.ypred_for_auc = tf.nn.sigmoid(self.scores)
 
                 self.loss = tf.losses.mean_squared_error(self.input_y, self.scores) + l2_reg_lambda * l2_loss
+                #self.loss = tf.losses.mean_squared_error(self.input_y, self.scores)
 
 
 

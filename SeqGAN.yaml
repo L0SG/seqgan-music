@@ -4,12 +4,12 @@ GPU : '1' # if you have 2 GPU, use '0' or '1'
 #  Generator  Hyper-parameters
 ######################################################################################
 EMB_DIM : 32 # embedding dimension
-HIDDEN_DIM : 128 # hidden state dimension of lstm cell
-SEQ_LENGTH : 20 # sequence length
+HIDDEN_DIM : 256 # hidden state dimension of lstm cell
+SEQ_LENGTH : 100 # sequence length
 START_TOKEN : 0
 
-PRE_GEN_EPOCH : 50 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
-PRE_DIS_EPOCH : 50 # supervise (maximum likelihood estimation) epochs for discriminator (default: 50)
+PRE_GEN_EPOCH : 200 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
+PRE_DIS_EPOCH : 100 # supervise (maximum likelihood estimation) epochs for discriminator (default: 50)
 SEED : 88
 BATCH_SIZE : 32
 generator_lr : 0.0001
@@ -39,7 +39,7 @@ negative_file : 'dataset/generated1'
 valid_file : 'dataset/valid'
 # # of real data tokens is 140000
 # specify so that generated_num * seq_length = 140000 to match balanced real & fake data
-generated_num : 7000
+generated_num : 1400
 
 epochs_generator : 1
 epochs_discriminator : 5
