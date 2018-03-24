@@ -3,10 +3,10 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 import random
-from dataloader import Gen_Data_loader, Dis_dataloader
-from generator import Generator
-from discriminator import Discriminator
-from rollout import ROLLOUT
+from dataloader import Gen_Data_loader, Dis_realdataloader, Dis_fakedataloader
+from generator_ls import Generator
+from discriminator_ls import Discriminator
+from rollout_ls import ROLLOUT
 import cPickle
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 import yaml
@@ -78,6 +78,17 @@ def generate_samples(sess, trainable_model, batch_size, generated_num, output_fi
         cPickle.dump(generated_samples, fp, protocol=2)
 
 
+def generate_samples_conditonal(sess, batch, trainable_model, batch_size, generated_num, output_file):
+    generated_samples = []
+    for _ in range(int(generated_num / batch_size)):
+        start_token = batch[:, 0]
+        prediction = trainable_model.predict(sess, batch, start_token)
+        prediction = np.argmax(prediction, axis=2)
+        generated_samples.extend(prediction)
+    with open(output_file, 'wb') as fp:
+        cPickle.dump(generated_samples, fp, protocol=2)
+
+
 def pre_train_epoch(sess, trainable_model, data_loader):
     # Pre-train the generator using MLE for one epoch
     # independent of D, the standard RNN learning
@@ -89,6 +100,23 @@ def pre_train_epoch(sess, trainable_model, data_loader):
         _, g_loss = trainable_model.pretrain_step(sess, batch)
         supervised_g_losses.append(g_loss)
 
+    return np.mean(supervised_g_losses)
+
+
+def pre_train_epoch_condtional(sess, trainable_model, data_loader):
+    # Pre-train the generator using MLE for one epoch
+    # independent of D, the standard RNN learning
+    supervised_g_losses = []
+    data_loader.reset_pointer()
+
+    for it in xrange(data_loader.num_batch):
+        batch = data_loader.next_batch()
+        # provide start token instead of zero start
+        trainable_model.start_token = tf.constant(batch[:, 0], dtype=tf.int32)
+        _, g_loss = trainable_model.pretrain_step(sess, batch)
+        supervised_g_losses.append(g_loss)
+    # reset the start token to zero
+    trainable_model.start_token = tf.constant([START_TOKEN] * BATCH_SIZE, dtype=tf.int32)
     return np.mean(supervised_g_losses)
 
 # new implementations
@@ -127,8 +155,8 @@ def calculate_bleu(sess, trainable_model, data_loader):
         batch = data_loader.next_batch()
         # predict from the batch
         # TODO: which start tokens?
-        #start_tokens = batch[:, 0]
-        start_tokens = np.array([START_TOKEN] * BATCH_SIZE, dtype=np.int64)
+        start_tokens = batch[:, 0]
+        #start_tokens = np.array([START_TOKEN] * BATCH_SIZE, dtype=np.int64)
         prediction = trainable_model.predict(sess, batch, start_tokens)
         # argmax to convert to vocab
         prediction = np.argmax(prediction, axis=2)
@@ -158,7 +186,8 @@ def main():
     # data loaders declaration
     # loaders for generator, discriminator, and additional validation data loader
     gen_data_loader = Gen_Data_loader(BATCH_SIZE)
-    dis_data_loader = Dis_dataloader(BATCH_SIZE)
+    dis_realdata_loader = Dis_realdataloader(BATCH_SIZE)
+    dis_fakedata_loader = Dis_fakedataloader(BATCH_SIZE)
     eval_data_loader = Gen_Data_loader(BATCH_SIZE)
 
     # define generator and discriminator
@@ -166,7 +195,7 @@ def main():
     # learning rates for generator needs heavy tuning for general use
     # l2 reg for D & G also affects performance
     generator = Generator(vocab_size, BATCH_SIZE, EMB_DIM, HIDDEN_DIM, SEQ_LENGTH, START_TOKEN, GENERATOR_LR, REWARD_GAMMA)
-    discriminator = Discriminator(sequence_length=SEQ_LENGTH, num_classes=2, vocab_size=vocab_size, embedding_size=dis_embedding_dim,
+    discriminator = Discriminator(sequence_length=SEQ_LENGTH, num_classes=1, vocab_size=vocab_size, embedding_size=dis_embedding_dim,
                                 filter_sizes=dis_filter_sizes, num_filters=dis_num_filters, l2_reg_lambda=dis_l2_reg_lambda)
 
     # VRAM limitation for efficient deployment
@@ -182,9 +211,9 @@ def main():
     eval_data_loader.create_batches(valid_file)
 
     time = str(datetime.datetime.now())[:-7]
-    log = open('save/experiment-log' + str(time) + '.txt', 'w')
+    log = open('save/experiment-log-ls-conditional' + str(time) + '.txt', 'w')
     log.write(str(config)+'\n')
-    log.write('D loss: original\n')
+    log.write('D loss: lsgan\n')
     log.flush()
 
     #summary_writer = tf.summary.FileWriter('save/tensorboard/', graph=tf.get_default_graph())
@@ -195,7 +224,7 @@ def main():
         log.write('pre-training...\n')
         for epoch in xrange(PRE_GEN_EPOCH):
             # calculate the loss by running an epoch
-            loss = pre_train_epoch(sess, generator, gen_data_loader)
+            loss = pre_train_epoch_condtional(sess, generator, gen_data_loader)
 
             # measure bleu score with the validation set
             bleu_score = calculate_bleu(sess, generator, eval_data_loader)
@@ -212,10 +241,10 @@ def main():
             # midi files are saved to the pre-defined folder
             if epoch == 0:
                 generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-                POST.main(negative_file, 5, str(-1)+'_vanilla_', 'midi')
+                POST.main(negative_file, 5, str(-1)+'_lsgan_', 'midi_conditional')
             elif epoch == PRE_GEN_EPOCH - 1:
                 generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-                POST.main(negative_file, 5, str(-PRE_GEN_EPOCH)+'_vanilla_', 'midi')
+                POST.main(negative_file, 5, str(-PRE_GEN_EPOCH)+'_lsgan_', 'midi_conditional')
 
 
         print 'Start pre-training discriminator...'
@@ -225,21 +254,40 @@ def main():
             generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
             D_loss = 0
             for _ in range(3):
-                dis_data_loader.load_train_data(positive_file, negative_file)
-                dis_data_loader.reset_pointer()
-                for it in xrange(dis_data_loader.num_batch):
-                    x_batch, y_batch = dis_data_loader.next_batch()
+
+                dis_realdata_loader.load_train_data(positive_file)
+                dis_realdata_loader.reset_pointer()
+                dis_fakedata_loader.load_train_data(negative_file)
+                dis_fakedata_loader.reset_pointer()
+                assert dis_realdata_loader.num_batch == dis_fakedata_loader.num_batch
+
+                for it in xrange(dis_realdata_loader.num_batch):
+                    x_realbatch, y_realbatch = dis_realdata_loader.next_batch()
+                    x_fakebatch, y_fakebatch = dis_fakedata_loader.next_batch()
+
+                    # real label: [0, 1], fake label: [1, 0]
+                    # take only label for real (1 for real, 0 for fake)
                     feed = {
-                        discriminator.input_x: x_batch,
-                        discriminator.input_y: y_batch,
+                        discriminator.input_x_real: x_realbatch,
+                        discriminator.input_y_real: np.expand_dims(y_realbatch[:, 1], 1),
+                        discriminator.input_x_fake: x_fakebatch,
+                        discriminator.input_y_fake: np.expand_dims(y_fakebatch[:, 1], 1),
                         discriminator.dropout_keep_prob: dis_dropout_keep_prob
                     }
-                    _ = sess.run(discriminator.train_op, feed)
+                    #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
+                    _= sess.run([discriminator.train_op], feed)
                     D_loss += discriminator.loss.eval(feed, session=sess)
-            buffer = 'epoch: ' + str(epochs+1) + '  D loss: ' + str(D_loss/dis_data_loader.num_batch/3)
+            D_loss = D_loss/dis_realdata_loader.num_batch/3
+            buffer = 'epoch: ' + str(epochs+1) + '  D loss: ' + str(D_loss)
             print(buffer)
             log.write(buffer + '\n')
             log.flush()
+
+            # for tensorboard plot
+            # tf.summary.scalar("pretrain_loss_D", D_loss)
+            # merged_summary_op = tf.summary.merge_all()
+            # summary = sess.run(merged_summary_op)
+            # summary_writer.add_summary(summary, epoch)
 
         # save the pre-trained checkpoint for future use
         # if one wants adv. training only, comment out the pre-training section after the save
@@ -275,14 +323,22 @@ def main():
         for _ in range(epochs_discriminator):
             generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
             for _ in range(3):
-                dis_data_loader.load_train_data(positive_file, negative_file)
-                dis_data_loader.reset_pointer()
+                dis_realdata_loader.load_train_data(positive_file)
+                dis_realdata_loader.reset_pointer()
+                dis_fakedata_loader.load_train_data(negative_file)
+                dis_fakedata_loader.reset_pointer()
+                assert dis_realdata_loader.num_batch == dis_fakedata_loader.num_batch
 
-                for it in xrange(dis_data_loader.num_batch):
-                    x_batch, y_batch = dis_data_loader.next_batch()
+                for it in xrange(dis_realdata_loader.num_batch):
+                    x_realbatch, y_realbatch = dis_realdata_loader.next_batch()
+                    x_fakebatch, y_fakebatch = dis_fakedata_loader.next_batch()
+                    # real label: [0, 1], fake label: [1, 0]
+                    # take only label for real (1 for real, 0 for fake)
                     feed = {
-                        discriminator.input_x: x_batch,
-                        discriminator.input_y: y_batch,
+                        discriminator.input_x_real: x_realbatch,
+                        discriminator.input_y_real: np.expand_dims(y_realbatch[:, 1], 1),
+                        discriminator.input_x_fake: x_fakebatch,
+                        discriminator.input_y_fake: np.expand_dims(y_fakebatch[:, 1], 1),
                         discriminator.dropout_keep_prob: dis_dropout_keep_prob
                     }
                     _ = sess.run(discriminator.train_op, feed)
@@ -298,8 +354,14 @@ def main():
         log.flush()
 
         # generate random test samples and postprocess the sequence to midi file
-        generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-        POST.main(negative_file, 5, str(total_batch)+'_vanilla_', 'midi')
+        #generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
+
+        # instead of the above, generate samples conditionally
+        # randomly sample a batch
+        rng = np.random.randint(0, high=gen_data_loader.num_batch, size=1)
+        random_batch = np.squeeze(gen_data_loader.sequence_batch[rng])
+        generate_samples_conditonal(sess, random_batch, generator, BATCH_SIZE, generated_num, negative_file)
+        POST.main(negative_file, 5, str(total_batch)+'_lsgan_', 'midi_conditional')
     log.close()
 
 

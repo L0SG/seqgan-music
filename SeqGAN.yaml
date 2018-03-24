@@ -1,4 +1,4 @@
-GPU : '1' # if you have 2 GPU, use '0' or '1'
+GPU : '3' # if you have 2 GPU, use '0' or '1'
 
 #########################################################################################
 #  Generator  Hyper-parameters
@@ -14,6 +14,7 @@ SEED : 88
 BATCH_SIZE : 32
 generator_lr : 0.0001
 ROLLOUT_UPDATE_RATE: 0.8
+reward_gamma: 0.99
 #########################################################################################
 #  Discriminator  Hyper-parameters
 #########################################################################################
@@ -35,7 +36,7 @@ vocab_size : 3216
 positive_file : 'dataset/train'
 # negative data from the generator, containing fake sequences
 # specify different name if experimenting with multiple instances: causes EOF error & writing to same file from different instances
-negative_file : 'dataset/generated1'
+negative_file : 'dataset/generated3'
 valid_file : 'dataset/valid'
 # # of real data tokens is 140000
 # specify so that generated_num * seq_length = 140000 to match balanced real & fake data

@@ -78,6 +78,17 @@ def generate_samples(sess, trainable_model, batch_size, generated_num, output_fi
         cPickle.dump(generated_samples, fp, protocol=2)
 
 
+def generate_samples_conditonal(sess, batch, trainable_model, batch_size, generated_num, output_file):
+    generated_samples = []
+    for _ in range(int(generated_num / batch_size)):
+        start_token = batch[:, 0]
+        prediction = trainable_model.predict(sess, batch, start_token)
+        prediction = np.argmax(prediction, axis=2)
+        generated_samples.extend(prediction)
+    with open(output_file, 'wb') as fp:
+        cPickle.dump(generated_samples, fp, protocol=2)
+
+
 def pre_train_epoch(sess, trainable_model, data_loader):
     # Pre-train the generator using MLE for one epoch
     # independent of D, the standard RNN learning
@@ -89,6 +100,23 @@ def pre_train_epoch(sess, trainable_model, data_loader):
         _, g_loss = trainable_model.pretrain_step(sess, batch)
         supervised_g_losses.append(g_loss)
 
+    return np.mean(supervised_g_losses)
+
+
+def pre_train_epoch_condtional(sess, trainable_model, data_loader):
+    # Pre-train the generator using MLE for one epoch
+    # independent of D, the standard RNN learning
+    supervised_g_losses = []
+    data_loader.reset_pointer()
+
+    for it in xrange(data_loader.num_batch):
+        batch = data_loader.next_batch()
+        # provide start token instead of zero start
+        trainable_model.start_token = tf.constant(batch[:, 0], dtype=tf.int32)
+        _, g_loss = trainable_model.pretrain_step(sess, batch)
+        supervised_g_losses.append(g_loss)
+    # reset the start token to zero
+    trainable_model.start_token = tf.constant([START_TOKEN] * BATCH_SIZE, dtype=tf.int32)
     return np.mean(supervised_g_losses)
 
 # new implementations
@@ -127,8 +155,8 @@ def calculate_bleu(sess, trainable_model, data_loader):
         batch = data_loader.next_batch()
         # predict from the batch
         # TODO: which start tokens?
-        #start_tokens = batch[:, 0]
-        start_tokens = np.array([START_TOKEN] * BATCH_SIZE, dtype=np.int64)
+        start_tokens = batch[:, 0]
+        #start_tokens = np.array([START_TOKEN] * BATCH_SIZE, dtype=np.int64)
         prediction = trainable_model.predict(sess, batch, start_tokens)
         # argmax to convert to vocab
         prediction = np.argmax(prediction, axis=2)
@@ -182,7 +210,7 @@ def main():
     eval_data_loader.create_batches(valid_file)
 
     time = str(datetime.datetime.now())[:-7]
-    log = open('save/experiment-log' + str(time) + '.txt', 'w')
+    log = open('save/experiment-log-conditional' + str(time) + '.txt', 'w')
     log.write(str(config)+'\n')
     log.write('D loss: original\n')
     log.flush()
@@ -195,7 +223,7 @@ def main():
         log.write('pre-training...\n')
         for epoch in xrange(PRE_GEN_EPOCH):
             # calculate the loss by running an epoch
-            loss = pre_train_epoch(sess, generator, gen_data_loader)
+            loss = pre_train_epoch_condtional(sess, generator, gen_data_loader)
 
             # measure bleu score with the validation set
             bleu_score = calculate_bleu(sess, generator, eval_data_loader)
@@ -212,10 +240,10 @@ def main():
             # midi files are saved to the pre-defined folder
             if epoch == 0:
                 generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-                POST.main(negative_file, 5, str(-1)+'_vanilla_', 'midi')
+                POST.main(negative_file, 5, str(-1)+'_vanilla_', 'midi_conditional')
             elif epoch == PRE_GEN_EPOCH - 1:
                 generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-                POST.main(negative_file, 5, str(-PRE_GEN_EPOCH)+'_vanilla_', 'midi')
+                POST.main(negative_file, 5, str(-PRE_GEN_EPOCH)+'_vanilla_', 'midi_conditional')
 
 
         print 'Start pre-training discriminator...'
@@ -298,8 +326,14 @@ def main():
         log.flush()
 
         # generate random test samples and postprocess the sequence to midi file
-        generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-        POST.main(negative_file, 5, str(total_batch)+'_vanilla_', 'midi')
+        #generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
+
+        # instead of the above, generate samples conditionally
+        # randomly sample a batch
+        rng = np.random.randint(0, high=gen_data_loader.num_batch, size=1)
+        random_batch = np.squeeze(gen_data_loader.sequence_batch[rng])
+        generate_samples_conditonal(sess, random_batch, generator, BATCH_SIZE, generated_num, negative_file)
+        POST.main(negative_file, 5, str(total_batch)+'_vanilla_', 'midi_conditional')
     log.close()
 
 

@@ -35,6 +35,8 @@ PRE_DIS_EPOCH = config['PRE_DIS_EPOCH'] # supervise (maximum likelihood estimati
 SEED = config['SEED']
 BATCH_SIZE = config['BATCH_SIZE']
 ROLLOUT_UPDATE_RATE = config['ROLLOUT_UPDATE_RATE']
+GENERATOR_LR = config['generator_lr']
+REWARD_GAMMA = config['reward_gamma']
 #########################################################################################
 #  Discriminator  Hyper-parameters
 #########################################################################################
@@ -167,7 +169,7 @@ def main():
     # general structures are same with the original model
     # learning rates for generator needs heavy tuning for general use
     # l2 reg for D & G also affects performance
-    generator = Generator(vocab_size, BATCH_SIZE, EMB_DIM, HIDDEN_DIM, SEQ_LENGTH, START_TOKEN)
+    generator = Generator(vocab_size, BATCH_SIZE, EMB_DIM, HIDDEN_DIM, SEQ_LENGTH, START_TOKEN, GENERATOR_LR, REWARD_GAMMA)
     discriminator = Discriminator(sequence_length=SEQ_LENGTH, num_classes=1, vocab_size=vocab_size, embedding_size=dis_embedding_dim,
                                 filter_sizes=dis_filter_sizes, num_filters=dis_num_filters, l2_reg_lambda=dis_l2_reg_lambda)
 
@@ -220,10 +222,10 @@ def main():
             # midi files are saved to the pre-defined folder
             if epoch == 0:
                 generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-                POST.main(negative_file, 5, str(-1)+'_lsgan_')
+                POST.main(negative_file, 5, str(-1)+'_lsgan_', 'midi')
             elif epoch == PRE_GEN_EPOCH - 1:
                 generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-                POST.main(negative_file, 5, str(-PRE_GEN_EPOCH)+'_lsgan_')
+                POST.main(negative_file, 5, str(-PRE_GEN_EPOCH)+'_lsgan_', 'midi')
 
 
         print 'Start pre-training discriminator...'
@@ -334,7 +336,7 @@ def main():
 
         # generate random test samples and postprocess the sequence to midi file
         generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
-        POST.main(negative_file, 5, str(total_batch)+'_lsgan_')
+        POST.main(negative_file, 5, str(total_batch)+'_lsgan_', 'midi')
     log.close()
 
 

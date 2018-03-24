@@ -71,7 +71,7 @@ def convert_pitch(token):
         p.append(scale[key[i]]+str(octave[i]))
     return p
 
-def main(DATA, num_sample, epoch):
+def main(DATA, num_sample, epoch, midi_path):
     # load sequence file
     #with open('./dataset/train', 'rb') as fp:
     with open(DATA, 'rb') as fp:
@@ -115,8 +115,8 @@ def main(DATA, num_sample, epoch):
 
 
         all_parts.append([part_melody, part_chord])
-	fp = all_parts.write('midi', './midi/Ep_' + str(epoch) + '_test_' + str(sample) +'.mid')
+	fp = all_parts.write('midi', './'+midi_path+'/Ep_' + str(epoch) + '_test_' + str(sample) +'.mid')
 
 
 if __name__ == "__main__":
-    main('./dataset/train',1,1)
+    main('./dataset/train',1,1, 'midi')
