@@ -83,7 +83,7 @@ def generate_samples_conditonal(sess, batch, trainable_model, batch_size, genera
     for _ in range(int(generated_num / batch_size)):
         start_token = batch[:, 0]
         prediction = trainable_model.predict(sess, batch, start_token)
-        prediction = np.argmax(prediction, axis=2)
+        #prediction = np.argmax(prediction, axis=2)
         generated_samples.extend(prediction)
     with open(output_file, 'wb') as fp:
         cPickle.dump(generated_samples, fp, protocol=2)
@@ -174,7 +174,7 @@ def calculate_bleu(sess, trainable_model, data_loader):
     def calc_sentence_bleu(hypothesis):
         return sentence_bleu(references, hypothesis, smoothing_function=smoother.method4)
     if __name__ == '__main__':
-        p = Pool(processes=10)
+        p = Pool()
         result = (p.map(calc_sentence_bleu, hypotheses))
     bleu = np.mean(result)
 
