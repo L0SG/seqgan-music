@@ -130,8 +130,9 @@ def calculate_bleu(sess, trainable_model, data_loader):
         # start_tokens = batch[:, 0]
         start_tokens = np.array([START_TOKEN] * BATCH_SIZE, dtype=np.int64)
         prediction = trainable_model.predict(sess, batch, start_tokens)
+
         # argmax to convert to vocab
-        prediction = np.argmax(prediction, axis=2)
+        #prediction = np.argmax(prediction, axis=2)
 
         # cast batch and prediction to 2d list of strings
         batch_list = batch.astype(np.str).tolist()
@@ -148,7 +149,7 @@ def calculate_bleu(sess, trainable_model, data_loader):
         return sentence_bleu(references, hypothesis, smoothing_function=smoother.method4)
 
     if __name__ == '__main__':
-        p = Pool(processes=10)
+        p = Pool()
         result = (p.map(calc_sentence_bleu, hypotheses))
     bleu = np.mean(result)
 
@@ -310,20 +311,50 @@ def main():
                 dis_fakedata_loader.reset_pointer()
                 assert dis_realdata_loader.num_batch == dis_fakedata_loader.num_batch
 
-                for it in xrange(dis_realdata_loader.num_batch):
+                # # if not using batch discrimination
+                # for it in xrange(dis_realdata_loader.num_batch):
+                #     x_realbatch, y_realbatch = dis_realdata_loader.next_batch()
+                #     x_fakebatch, y_fakebatch = dis_fakedata_loader.next_batch()
+                #     # real label: [0, 1], fake label: [1, 0]
+                #     # take only label for real (1 for real, 0 for fake)
+                #     feed = {
+                #         discriminator.input_x_real: x_realbatch,
+                #         discriminator.input_y_real: np.expand_dims(y_realbatch[:, 1], 1),
+                #         discriminator.input_x_fake: x_fakebatch,
+                #         discriminator.input_y_fake: np.expand_dims(y_fakebatch[:, 1], 1),
+                #         discriminator.dropout_keep_prob: dis_dropout_keep_prob
+                #     }
+                #     _ = sess.run(discriminator.train_op, feed)
+                #     D_loss += discriminator.loss.eval(feed, session=sess)
+
+                # if using batch discrimination
+                for it in xrange(dis_realdata_loader.num_batch / 2):
                     x_realbatch, y_realbatch = dis_realdata_loader.next_batch()
-                    x_fakebatch, y_fakebatch = dis_fakedata_loader.next_batch()
-                    # real label: [0, 1], fake label: [1, 0]
-                    # take only label for real (1 for real, 0 for fake)
+                    x_realbatch2, y_realbatch2 = dis_realdata_loader.next_batch()
+                    # BOTH ARE REAL
                     feed = {
                         discriminator.input_x_real: x_realbatch,
                         discriminator.input_y_real: np.expand_dims(y_realbatch[:, 1], 1),
-                        discriminator.input_x_fake: x_fakebatch,
-                        discriminator.input_y_fake: np.expand_dims(y_fakebatch[:, 1], 1),
+                        discriminator.input_x_fake: x_realbatch2,
+                        discriminator.input_y_fake: np.expand_dims(y_realbatch2[:, 1], 1),
                         discriminator.dropout_keep_prob: dis_dropout_keep_prob
                     }
                     _ = sess.run(discriminator.train_op, feed)
-                    D_loss += discriminator.loss.eval(feed, session=sess)
+                    D_loss += discriminator.loss.eval(feed, session=sess)/2
+
+                    x_fakebatch, y_fakebatch = dis_fakedata_loader.next_batch()
+                    x_fakebatch2, y_fakebatch2 = dis_fakedata_loader.next_batch()
+                    # BOTH ARE FAKE
+                    feed = {
+                        discriminator.input_x_real: x_fakebatch,
+                        discriminator.input_y_real: np.expand_dims(y_fakebatch[:, 1], 1),
+                        discriminator.input_x_fake: x_fakebatch2,
+                        discriminator.input_y_fake: np.expand_dims(y_fakebatch2[:, 1], 1),
+                        discriminator.dropout_keep_prob: dis_dropout_keep_prob
+                    }
+                    _ = sess.run(discriminator.train_op, feed)
+                    D_loss += discriminator.loss.eval(feed, session=sess)/2
+
 
         # measure stability and performance evaluation with bleu score
         buffer = 'epoch: ' + str(total_batch+1) + \

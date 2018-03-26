@@ -159,7 +159,7 @@ def calculate_bleu(sess, trainable_model, data_loader):
         #start_tokens = np.array([START_TOKEN] * BATCH_SIZE, dtype=np.int64)
         prediction = trainable_model.predict(sess, batch, start_tokens)
         # argmax to convert to vocab
-        prediction = np.argmax(prediction, axis=2)
+        #prediction = np.argmax(prediction, axis=2)
 
         # cast batch and prediction to 2d list of strings
         batch_list = batch.astype(np.str).tolist()

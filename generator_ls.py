@@ -125,7 +125,7 @@ class Generator(object):
         # unsupervised loss is the adversarial loss, with reward signal from D
         # note the element-wise reward signal from the policy rollout
         self.g_loss = -tf.reduce_sum(
-            tf.reduce_sum(
+            tf.reduce_mean(
                 tf.one_hot(tf.to_int32(tf.reshape(self.x, [-1])), self.num_emb, 1.0, 0.0) * tf.log(
                     tf.clip_by_value(tf.reshape(self.g_predictions, [-1, self.num_emb]), 1e-20, 1.0)
                 ), 1) * tf.reshape(self.rewards, [-1])
@@ -156,7 +156,7 @@ class Generator(object):
     # conditional sequence generation method
     # provide the start token ,instead of always zero start
     def predict(self, sess, x, start_token):
-        pred = sess.run(self.g_predictions, feed_dict={self.x: x, self.start_token: start_token})
+        pred = sess.run(self.gen_x, feed_dict={self.x: x, self.start_token: start_token})
         return pred
 
 

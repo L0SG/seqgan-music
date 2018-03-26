@@ -153,7 +153,7 @@ class Generator(object):
     # conditional sequence generation method
     # provide the start token ,instead of always zero start
     def predict(self, sess, x, start_token):
-        pred = sess.run(self.g_predictions, feed_dict={self.x: x, self.start_token: start_token})
+        pred = sess.run(self.gen_x, feed_dict={self.x: x, self.start_token: start_token})
         return pred
 
 

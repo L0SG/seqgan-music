@@ -212,27 +212,29 @@ class Dis_dataloader():
         neg_num_batch = int(len(negative_examples) / self.batch_size)
         self.num_batch = pos_num_batch + neg_num_batch
 
-        # TODO: check if this is right
-        sentences = np.concatenate([np.array(positive_examples), np.array(negative_examples)])
-        labels = np.concatenate([np.array(positive_labels), np.array(negative_labels)])
-        shuffler = np.arange(sentences.shape[0])
-        np.random.shuffle(shuffler)
-        sentences = sentences[shuffler]
-        labels = labels[shuffler]
-        self.sentences_batches = np.array(np.split(sentences, self.num_batch, 0))
-        self.labels_batches = np.array(np.split(labels, self.num_batch, 0))
 
-        # # follow minibatch discrimination technique: real or fake-only minibatch
-        # pos_sentences_batches = np.split(np.array(positive_examples), pos_num_batch, 0)
-        # pos_labels_batches = np.split(np.array(positive_labels), pos_num_batch, 0)
-        # neg_sentences_batches = np.split(np.array(negative_examples), neg_num_batch, 0)
-        # neg_labels_batches = np.split(np.array(negative_labels), neg_num_batch, 0)
-        # self.sentences_batches = np.concatenate([pos_sentences_batches, neg_sentences_batches])
-        # self.labels_batches = np.concatenate([pos_labels_batches, neg_labels_batches])
-        # shuffler = np.arange(self.sentences_batches.shape[0])
+        # not using minibatch discrimination
+        # # TODO: check if this is right
+        # sentences = np.concatenate([np.array(positive_examples), np.array(negative_examples)])
+        # labels = np.concatenate([np.array(positive_labels), np.array(negative_labels)])
+        # shuffler = np.arange(sentences.shape[0])
         # np.random.shuffle(shuffler)
-        # self.sentences_batches = self.sentences_batches[shuffler]
-        # self.labels_batches = self.labels_batches[shuffler]
+        # sentences = sentences[shuffler]
+        # labels = labels[shuffler]
+        # self.sentences_batches = np.array(np.split(sentences, self.num_batch, 0))
+        # self.labels_batches = np.array(np.split(labels, self.num_batch, 0))
+
+        # follow minibatch discrimination technique: real or fake-only minibatch
+        pos_sentences_batches = np.split(np.array(positive_examples), pos_num_batch, 0)
+        pos_labels_batches = np.split(np.array(positive_labels), pos_num_batch, 0)
+        neg_sentences_batches = np.split(np.array(negative_examples), neg_num_batch, 0)
+        neg_labels_batches = np.split(np.array(negative_labels), neg_num_batch, 0)
+        self.sentences_batches = np.concatenate([pos_sentences_batches, neg_sentences_batches])
+        self.labels_batches = np.concatenate([pos_labels_batches, neg_labels_batches])
+        shuffler = np.arange(self.sentences_batches.shape[0])
+        np.random.shuffle(shuffler)
+        self.sentences_batches = self.sentences_batches[shuffler]
+        self.labels_batches = self.labels_batches[shuffler]
 
         self.pointer = 0
 
@@ -255,9 +257,10 @@ class Dis_dataloader():
         sentences = sentences[shuffler]
         labels = labels[shuffler]
 
-        # sorter = np.argsort(labels[:, 1], kind='mergesort')
-        # sentences = sentences[sorter]
-        # labels = labels[sorter]
+        # if using batch discrimination, activate this code
+        sorter = np.argsort(labels[:, 1], kind='mergesort')
+        sentences = sentences[sorter]
+        labels = labels[sorter]
 
         self.sentences_batches = np.array(np.split(sentences, self.num_batch, 0))
         self.labels_batches = np.array(np.split(labels, self.num_batch, 0))
