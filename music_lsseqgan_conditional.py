@@ -399,14 +399,14 @@ def load_checkpoint(sess, saver):
     #ckpt = tf.train.get_checkpoint_state('save')
     #if ckpt and ckpt.model_checkpoint_path:
     #saver.restore(sess, tf.train.latest_checkpoint('save'))
-    ckpt = 'pretrain_g'+str(config['PRE_GEN_EPOCH'])+'_d'+str(config['PRE_DIS_EPOCH'])+'.ckpt'
+    ckpt = 'pretrain_g'+str(config['PRE_GEN_EPOCH'])+'_d'+str(config['PRE_DIS_EPOCH'])+'_lsgan_conditional.ckpt'
     saver.restore(sess, './save/' + ckpt)
     print 'checkpoint {} loaded'.format(ckpt)
     return
 
 
 def save_checkpoint(sess, saver, g_ep, d_ep):
-    checkpoint_path = os.path.join('save', 'pretrain_g'+str(g_ep)+'_d'+str(d_ep)+'.ckpt')
+    checkpoint_path = os.path.join('save', 'pretrain_g'+str(g_ep)+'_d'+str(d_ep)+'_lsgan_conditional.ckpt')
     saver.save(sess, checkpoint_path)
     print("model saved to {}".format(checkpoint_path))
     return
