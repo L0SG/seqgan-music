@@ -364,7 +364,7 @@ def main():
         # measure stability and performance evaluation with bleu score
         buffer = 'epoch: ' + str(total_batch+1) + \
                  ',  G_adv_loss: %.12f' % (G_loss/epochs_generator) + \
-                 ',  D loss: %.12f' % (D_loss/epochs_discriminator/3) + \
+                 ',  D loss: %.12f' % (D_loss/epochs_discriminator/config['epochs_discriminator_multiplier']) + \
                  ',  bleu score: %.12f' % calculate_bleu(sess, generator, eval_data_loader)
         print(buffer)
         log.write(buffer + '\n')
