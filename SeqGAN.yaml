@@ -4,23 +4,25 @@ GPU : '1' # if you have 2 GPU, use '0' or '1'
 #  Generator  Hyper-parameters
 ######################################################################################
 EMB_DIM : 32 # embedding dimension
-HIDDEN_DIM : 256 # hidden state dimension of lstm cell
+HIDDEN_DIM : 512 # hidden state dimension of lstm cell
 SEQ_LENGTH : 100 # sequence length
 START_TOKEN : 0
 
-PRE_GEN_EPOCH : 40 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
+PRE_GEN_EPOCH : 100 # supervise (maximum likelihood estimation) epochs for generator (default: 120)
 PRE_DIS_EPOCH : 100 # supervise (maximum likelihood estimation) epochs for discriminator (default: 50)
 SEED : 88
 BATCH_SIZE : 32
-generator_lr : 0.01
+generator_lr : 0.001
 ROLLOUT_UPDATE_RATE: 0.9
 reward_gamma: 0.99
+# use x10 learning rate for adversarial training: mainly for slow & accurate pretraining & more weighted adv training
+x10adv_g: True
 #########################################################################################
 #  Discriminator  Hyper-parameters
 #########################################################################################
 dis_embedding_dim : 32
 dis_filter_sizes : [5, 10, 15, 20]
-dis_num_filters : [200, 200, 200, 200]
+dis_num_filters : [400, 400, 400, 400]
 dis_dropout_keep_prob : 0.75
 dis_l2_reg_lambda : 0.2
 dis_batch_size : 32
@@ -43,6 +45,7 @@ valid_file : 'dataset/valid'
 generated_num : 1400
 
 epochs_generator : 1
-epochs_discriminator : 5
+epochs_discriminator : 1
+epochs_discriminator_multiplier : 1
 
 pretrain : True
