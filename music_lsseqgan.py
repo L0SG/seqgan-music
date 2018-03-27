@@ -287,6 +287,11 @@ def main():
     if config['pretrain'] == False:
         # load checkpoint of pre-trained model
         load_checkpoint(sess, saver)
+
+    # 0.001 to 0.01
+    if config['x10adv_g'] == True:
+        generator.learning_rate *= 10
+
     for total_batch in range(TOTAL_BATCH):
         G_loss = 0
         # Train the generator for one step
