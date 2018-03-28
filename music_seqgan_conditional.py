@@ -322,13 +322,22 @@ def main():
                     D_loss += discriminator.loss.eval(feed, session=sess)
 
         # measure stability and performance evaluation with bleu score
-        buffer = 'epoch: ' + str(total_batch+1) + \
-                 ',  G_adv_loss: %.12f' % (G_loss/epochs_generator) + \
-                 ',  D loss: %.12f' % (D_loss/epochs_discriminator/config['epochs_discriminator_multiplier']) + \
-                 ',  bleu score: %.12f' % calculate_bleu(sess, generator, eval_data_loader)
+        bleu_score = calculate_bleu(sess, generator, eval_data_loader)
+        buffer = 'epoch: ' + str(total_batch + 1) + \
+                 ',  G_adv_loss: %.12f' % (G_loss / epochs_generator) + \
+                 ',  D loss: %.12f' % (D_loss / epochs_discriminator / config['epochs_discriminator_multiplier']) + \
+                 ',  bleu score: %.12f' % bleu_score
         print(buffer)
         log.write(buffer + '\n')
         log.flush()
+
+        if config['infinite_loop'] is True:
+            if bleu_score < config['loop_threshold']:
+                buffer = 'Mode collapse detected, restarting from pretrained model...'
+                print(buffer)
+                log.write(buffer + '\n')
+                log.flush()
+                load_checkpoint(sess, saver)
 
         # generate random test samples and postprocess the sequence to midi file
         #generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
