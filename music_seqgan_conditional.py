@@ -222,7 +222,7 @@ def main():
     eval_data_loader.create_batches(valid_file)
 
     time = str(datetime.datetime.now())[:-7]
-    log = open('save/experiment-log-conditionalDEBUG' + str(time) + '.txt', 'w')
+    log = open('save/experiment-log-conditional' + str(time) + '.txt', 'w')
     log.write(str(config)+'\n')
     log.write('D loss: original\n')
     log.flush()

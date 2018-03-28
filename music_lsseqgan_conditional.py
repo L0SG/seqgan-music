@@ -89,6 +89,18 @@ def generate_samples_conditonal(sess, batch, trainable_model, batch_size, genera
         cPickle.dump(generated_samples, fp, protocol=2)
 
 
+def generate_samples_conditional_v2(sess, data_loader, trainable_model, batch_size, generated_num, output_file):
+    generated_samples = []
+    for _ in range(int(generated_num / batch_size)):
+        data_loader.reset_pointer()
+        random_batch = data_loader.next_batch()
+        start_token = random_batch[:, 0]
+        prediction = trainable_model.predict(sess, random_batch, start_token)
+        generated_samples.extend(prediction)
+    with open(output_file, 'wb') as fp:
+        cPickle.dump(generated_samples, fp, protocol=2)
+
+
 def pre_train_epoch(sess, trainable_model, data_loader):
     # Pre-train the generator using MLE for one epoch
     # independent of D, the standard RNN learning
@@ -251,7 +263,7 @@ def main():
         # Train 3 epoch on the generated data and do this for 50 times
         # this trick is also in spirit of the original work, but the epoch strategy needs tuning
         for epochs in range(PRE_DIS_EPOCH):
-            generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
+            generate_samples_conditional_v2(sess, gen_data_loader, generator, BATCH_SIZE, generated_num, negative_file)
             D_loss = 0
             for _ in range(3):
 
@@ -326,7 +338,7 @@ def main():
         # Train the discriminator
         D_loss = 0
         for _ in range(epochs_discriminator):
-            generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
+            generate_samples_conditional_v2(sess, gen_data_loader, generator, BATCH_SIZE, generated_num, negative_file)
             for _ in range(config['epochs_discriminator_multiplier']):
                 dis_realdata_loader.load_train_data(positive_file)
                 dis_realdata_loader.reset_pointer()
@@ -401,9 +413,9 @@ def main():
 
         # instead of the above, generate samples conditionally
         # randomly sample a batch
-        rng = np.random.randint(0, high=gen_data_loader.num_batch, size=1)
-        random_batch = np.squeeze(gen_data_loader.sequence_batch[rng])
-        generate_samples_conditonal(sess, random_batch, generator, BATCH_SIZE, generated_num, negative_file)
+        # rng = np.random.randint(0, high=gen_data_loader.num_batch, size=1)
+        # random_batch = np.squeeze(gen_data_loader.sequence_batch[rng])
+        generate_samples_conditional_v2(sess, gen_data_loader, generator, BATCH_SIZE, generated_num, negative_file)
         POST.main(negative_file, 5, str(total_batch)+'_lsgan_', 'midi_conditional')
     log.close()
 
