@@ -1,4 +1,4 @@
-GPU : '3' # if you have 2 GPU, use '0' or '1'
+GPU : '0' # if you have 2 GPU, use '0' or '1'
 
 #########################################################################################
 #  Generator  Hyper-parameters
@@ -38,7 +38,7 @@ vocab_size : 3216
 positive_file : 'dataset/train'
 # negative data from the generator, containing fake sequences
 # specify different name if experimenting with multiple instances: causes EOF error & writing to same file from different instances
-negative_file : 'dataset/generated7'
+negative_file : 'dataset/generated'
 valid_file : 'dataset/valid'
 # # of real data tokens is 140000
 # specify so that generated_num * seq_length = 140000 to match balanced real & fake data
@@ -48,7 +48,7 @@ epochs_generator : 1
 epochs_discriminator : 1
 epochs_discriminator_multiplier : 3
 
-pretrain : False
+pretrain : True
 # RL is stochastic: scrap and restart from pretrained checkpoint if things start failing
 infinite_loop: True
 # our dataset achives around 0.53 from pretraining
