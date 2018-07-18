@@ -1,4 +1,4 @@
-** This repo is a work-in-progress status without code cleanup and refactoring. **
+**This repo is a work-in-progress status without code cleanup and refactoring.**
 
 ## Introduction
 This is an implementation of a paper [Polyphonic Music Generation with Sequence Generative Adversarial Networks](https://arxiv.org/abs/1710.11418) in TensorFlow.
