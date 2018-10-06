@@ -10,7 +10,7 @@ Python 2.7
 
 Tensorflow 1.4 or newer (tested on 1.9)
 
-pip packages: music21, pyyaml, nltk, pathos
+pip packages: music21 4.1.0, pyyaml, nltk, pathos
 
 ## How to use
 `python music_seqgan.py` for full training run.
